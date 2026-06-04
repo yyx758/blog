@@ -13,7 +13,7 @@
   管理文章
 </button>
 
-<!-- 管理面板 -->
+<!-- 管理面板（列表视图） -->
 <div
   id="admin-panel"
   class="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-bg-card border-l border-border shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col"
@@ -66,71 +66,90 @@
     <div id="posts-list" class="flex-1 overflow-y-auto"></div>
   </div>
 
-  <!-- 编辑器视图 -->
-  <div id="admin-editor" class="flex-1 flex-col hidden">
-    <div class="px-5 py-3 border-b border-border flex items-center gap-3">
-      <button id="editor-back" class="p-1.5 text-text-secondary hover:text-primary transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <span id="editor-title" class="text-sm font-medium flex-1 truncate">新建文章</span>
-      <button id="editor-delete" class="p-1.5 text-red-400 hover:text-red-600 transition-colors hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-          <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        </svg>
-      </button>
-      <button
-        id="editor-save"
-        class="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-light transition-colors"
-      >
-        保存
-      </button>
-    </div>
-    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-      <div>
-        <label class="block text-xs font-medium text-text-secondary mb-1.5">标题</label>
-        <input id="edit-title" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="文章标题" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1.5">日期</label>
-          <input id="edit-date" type="date" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-text-secondary mb-1.5">标签（逗号分隔）</label>
-          <input id="edit-tags" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="前端, Astro" />
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-text-secondary mb-1.5">描述</label>
-        <input id="edit-desc" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="一句话描述" />
-      </div>
-      <div class="flex items-center gap-2">
-        <input id="edit-draft" type="checkbox" class="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
-        <label for="edit-draft" class="text-sm text-text-secondary">设为草稿</label>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-text-secondary mb-1.5">正文（Markdown）</label>
-        <textarea
-          id="edit-body"
-          rows="20"
-          class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-primary transition-colors resize-y"
-          placeholder="在此编写 Markdown 内容..."
-        ></textarea>
-      </div>
-    </div>
-  </div>
-
   <!-- 加载状态 -->
   <div id="admin-loading" class="absolute inset-0 flex items-center justify-center bg-bg-card/80 hidden z-10">
     <div class="text-sm text-text-secondary">加载中...</div>
   </div>
 </div>
 
+<!-- 全屏编辑器 -->
+<div id="admin-editor" class="fixed inset-0 bg-bg z-50 hidden flex-col">
+  <!-- 编辑器顶栏 -->
+  <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-card flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <button id="editor-back" class="p-1.5 text-text-secondary hover:text-primary transition-colors" title="返回列表">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span id="editor-title" class="text-sm font-medium">新建文章</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <!-- 预览切换 -->
+      <div class="flex items-center bg-bg rounded-lg border border-border p-0.5">
+        <button id="tab-edit" class="px-3 py-1 text-xs font-medium rounded-md bg-primary text-white transition-colors">编辑</button>
+        <button id="tab-preview" class="px-3 py-1 text-xs font-medium rounded-md text-text-secondary hover:text-text transition-colors">预览</button>
+        <button id="tab-split" class="px-3 py-1 text-xs font-medium rounded-md text-text-secondary hover:text-text transition-colors">分屏</button>
+      </div>
+      <button id="editor-delete" class="p-1.5 text-red-400 hover:text-red-600 transition-colors hidden" title="删除文章">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </button>
+      <button
+        id="editor-save"
+        class="px-4 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-light transition-colors"
+      >
+        保存
+      </button>
+    </div>
+  </div>
+
+  <!-- 元信息区（标题、标签等） -->
+  <div class="px-6 py-4 border-b border-border bg-bg-card flex-shrink-0">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div class="sm:col-span-2">
+        <input id="edit-title" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="文章标题" />
+      </div>
+      <div>
+        <input id="edit-date" type="date" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" />
+      </div>
+      <div>
+        <input id="edit-tags" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="标签（逗号分隔）" />
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3">
+      <div class="sm:col-span-3">
+        <input id="edit-desc" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="一句话描述" />
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="edit-draft" type="checkbox" class="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+        <label for="edit-draft" class="text-sm text-text-secondary">草稿</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑/预览主体 -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- 编辑区 -->
+    <div id="editor-pane" class="flex-1 flex flex-col overflow-hidden">
+      <textarea
+        id="edit-body"
+        class="flex-1 w-full px-6 py-4 bg-bg text-sm font-mono focus:outline-none resize-none"
+        placeholder="在此编写 Markdown 内容..."
+      ></textarea>
+    </div>
+    <!-- 预览区 -->
+    <div id="preview-pane" class="flex-1 overflow-y-auto px-8 py-6 border-l border-border hidden">
+      <div id="preview-content" class="prose max-w-none text-text"></div>
+    </div>
+  </div>
+</div>
+
 <!-- 遮罩层 -->
 <div id="admin-overlay" class="fixed inset-0 bg-black/20 z-40 hidden transition-opacity"></div>
 
+<script is:inline src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
 <script is:inline>
 (function() {
   let token = localStorage.getItem('gh_token');
@@ -144,17 +163,84 @@
   const editorView = document.getElementById('admin-editor');
   const loading = document.getElementById('admin-loading');
 
+  // Tab elements
+  const tabEdit = document.getElementById('tab-edit');
+  const tabPreview = document.getElementById('tab-preview');
+  const tabSplit = document.getElementById('tab-split');
+  const editorPane = document.getElementById('editor-pane');
+  const previewPane = document.getElementById('preview-pane');
+  const previewContent = document.getElementById('preview-content');
+  const editBody = document.getElementById('edit-body');
+  const editorTitle = document.getElementById('editor-title');
+
+  let currentTab = 'edit';
+
   function showView(view) {
     loginView.classList.add('hidden');
     listView.classList.add('hidden');
     editorView.classList.add('hidden');
-    view.classList.remove('hidden');
-    view.classList.add('flex');
+    editorView.classList.remove('flex');
+    if (view === editorView) {
+      view.classList.remove('hidden');
+      view.classList.add('flex');
+    } else {
+      view.classList.remove('hidden');
+      view.classList.add('flex');
+    }
   }
 
   function showLoading(show) {
     loading.classList.toggle('hidden', !show);
   }
+
+  // Tab switching
+  function setTab(tab) {
+    currentTab = tab;
+    tabEdit.className = 'px-3 py-1 text-xs font-medium rounded-md transition-colors ' + (tab === 'edit' ? 'bg-primary text-white' : 'text-text-secondary hover:text-text');
+    tabPreview.className = 'px-3 py-1 text-xs font-medium rounded-md transition-colors ' + (tab === 'preview' ? 'bg-primary text-white' : 'text-text-secondary hover:text-text');
+    tabSplit.className = 'px-3 py-1 text-xs font-medium rounded-md transition-colors ' + (tab === 'split' ? 'bg-primary text-white' : 'text-text-secondary hover:text-text');
+
+    if (tab === 'edit') {
+      editorPane.classList.remove('hidden');
+      previewPane.classList.add('hidden');
+    } else if (tab === 'preview') {
+      editorPane.classList.add('hidden');
+      previewPane.classList.remove('hidden');
+      renderPreview();
+    } else {
+      editorPane.classList.remove('hidden');
+      editorPane.classList.remove('flex-1');
+      editorPane.classList.add('w-1/2');
+      previewPane.classList.remove('hidden');
+      previewPane.classList.add('w-1/2');
+      renderPreview();
+    }
+  }
+
+  function resetTabLayout() {
+    editorPane.classList.remove('hidden', 'w-1/2');
+    editorPane.classList.add('flex-1');
+    previewPane.classList.add('hidden');
+    previewPane.classList.remove('w-1/2');
+    setTab('edit');
+  }
+
+  function renderPreview() {
+    const md = editBody.value;
+    if (typeof marked !== 'undefined') {
+      previewContent.innerHTML = marked.parse(md);
+    } else {
+      previewContent.textContent = md;
+    }
+  }
+
+  tabEdit.addEventListener('click', () => setTab('edit'));
+  tabPreview.addEventListener('click', () => setTab('preview'));
+  tabSplit.addEventListener('click', () => setTab('split'));
+  editBody.addEventListener('input', () => {
+    if (currentTab === 'preview') renderPreview();
+    if (currentTab === 'split') renderPreview();
+  });
 
   // 打开/关闭面板
   document.getElementById('admin-toggle').addEventListener('click', () => {
@@ -243,7 +329,7 @@
   // 打开编辑器
   function openEditor(post) {
     currentPost = post;
-    document.getElementById('editor-title').textContent = post ? '编辑文章' : '新建文章';
+    editorTitle.textContent = post ? '编辑文章' : '新建文章';
     document.getElementById('editor-delete').classList.toggle('hidden', !post);
 
     document.getElementById('edit-title').value = post?.title || '';
@@ -253,10 +339,19 @@
     document.getElementById('edit-draft').checked = post?.draft || false;
     document.getElementById('edit-body').value = post?.body || '';
 
+    resetTabLayout();
     showView(editorView);
+    closePanel();
+    document.body.style.overflow = 'hidden';
   }
 
   document.getElementById('editor-back').addEventListener('click', () => {
+    document.body.style.overflow = '';
+    resetTabLayout();
+    editorView.classList.add('hidden');
+    editorView.classList.remove('flex');
+    panel.classList.remove('translate-x-full');
+    overlay.classList.remove('hidden');
     renderPostList();
     showView(listView);
   });
@@ -272,10 +367,12 @@
     const draft = document.getElementById('edit-draft').checked;
     const body = document.getElementById('edit-body').value;
 
-    showLoading(true);
+    const saveBtn = document.getElementById('editor-save');
+    saveBtn.textContent = '保存中...';
+    saveBtn.disabled = true;
+
     try {
       if (currentPost) {
-        // 编辑
         const res = await fetch('/api/posts', {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -283,7 +380,6 @@
         });
         if (!res.ok) throw new Error('Save failed');
       } else {
-        // 新建
         const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
         const filename = `${slug}.mdx`;
         const res = await fetch('/api/posts', {
@@ -293,11 +389,12 @@
         });
         if (!res.ok) throw new Error('Save failed');
       }
-      await loadPosts();
+      alert('保存成功');
     } catch (err) {
       alert('保存失败: ' + err.message);
     }
-    showLoading(false);
+    saveBtn.textContent = '保存';
+    saveBtn.disabled = false;
   });
 
   // 删除文章
@@ -313,6 +410,11 @@
         body: JSON.stringify({ filename: currentPost.filename, sha: currentPost.sha, title: currentPost.title }),
       });
       if (!res.ok) throw new Error('Delete failed');
+      document.body.style.overflow = '';
+      editorView.classList.add('hidden');
+      editorView.classList.remove('flex');
+      panel.classList.remove('translate-x-full');
+      overlay.classList.remove('hidden');
       await loadPosts();
     } catch (err) {
       alert('删除失败: ' + err.message);
