@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const dateStr = post.data.date.toLocaleDateString('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+---
+
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <article>
+    <header class="mb-8 border-b border-border pb-6">
+      <h1 class="text-3xl font-bold mb-3">{post.data.title}</h1>
+      <div class="flex items-center gap-3 text-sm text-text-secondary">
+        <time datetime={post.data.date.toISOString()}>{dateStr}</time>
+        {post.data.tags.length > 0 && (
+          <div class="flex gap-1.5">
+            {post.data.tags.map((tag) => (
+              <a
+                href={`/tags/${tag}`}
+                class="px-2 py-0.5 bg-gray-100 rounded-full hover:bg-primary hover:text-white transition-colors"
+              >
+                {tag}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+      {post.data.description && (
+        <p class="mt-3 text-text-secondary">{post.data.description}</p>
+      )}
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+
+  <div class="mt-12 pt-6 border-t border-border">
+    <a href="/posts" class="text-sm text-primary hover:underline">&larr; 返回全部文章</a>
+  </div>
+</BaseLayout>

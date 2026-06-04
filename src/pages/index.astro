@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const recentPosts = allPosts
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 5);
+
+const tagCount = new Map<string, number>();
+for (const post of allPosts) {
+  for (const tag of post.data.tags) {
+    tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1);
+  }
+}
+const popularTags = [...tagCount.entries()]
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10);
+---
+
+<BaseLayout title="首页" wide>
+  <!-- Hero Section -->
+  <section class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16 py-8 lg:py-16">
+    <!-- Left: Text -->
+    <div class="flex-1 min-w-0">
+      <h1 class="text-4xl lg:text-5xl font-bold tracking-tight leading-tight mb-5">
+        你好，欢迎来到<br />我的<span class="text-primary">技术博客</span>
+      </h1>
+      <p class="text-text-secondary text-lg leading-relaxed mb-8 max-w-xl">
+        记录学习、分享技术、复盘项目，在持续实践中构建自己的技术体系。
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a
+          href="/posts"
+          class="inline-flex items-center px-6 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors"
+        >
+          开始阅读
+        </a>
+        <a
+          href="/posts"
+          class="inline-flex items-center px-6 py-2.5 bg-white text-text text-sm font-medium rounded-lg border border-border hover:border-primary hover:text-primary transition-colors"
+        >
+          查看文章
+        </a>
+      </div>
+    </div>
+
+    <!-- Right: Hero Image -->
+    <div class="flex-1 min-w-0 flex justify-center lg:justify-end">
+      <div class="relative w-full max-w-[520px]">
+        <div class="rounded-3xl overflow-hidden border border-border bg-white shadow-sm">
+          <img
+            src="/images/image.png"
+            alt="技术博客主视觉"
+            class="w-full h-auto block"
+            loading="eager"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Posts -->
+  <section class="py-10 border-t border-border">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-semibold">最近文章</h2>
+      <a href="/posts" class="text-sm text-primary hover:underline">查看全部 &rarr;</a>
+    </div>
+
+    <div class="max-w-3xl">
+      {recentPosts.length === 0 ? (
+        <p class="text-text-secondary text-sm">还没有文章，敬请期待。</p>
+      ) : (
+        recentPosts.map((post) => (
+          <PostCard
+            title={post.data.title}
+            date={post.data.date}
+            description={post.data.description}
+            tags={post.data.tags}
+            slug={post.id}
+          />
+        ))
+      )}
+    </div>
+  </section>
+
+  <!-- Tags -->
+  {popularTags.length > 0 && (
+    <section class="py-10 border-t border-border">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold">标签</h2>
+        <a href="/tags" class="text-sm text-primary hover:underline">全部标签 &rarr;</a>
+      </div>
+      <div class="flex flex-wrap gap-2.5">
+        {popularTags.map(([tag, count]) => (
+          <a
+            href={`/tags/${tag}`}
+            class="px-4 py-2 text-sm bg-white border border-border rounded-full hover:bg-primary hover:text-white hover:border-primary transition-all"
+          >
+            {tag}
+            <span class="ml-1 opacity-50">({count})</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+</BaseLayout>

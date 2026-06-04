@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('posts', ({ data }) => !data.draft);
+
+const tagCount = new Map<string, number>();
+for (const post of posts) {
+  for (const tag of post.data.tags) {
+    tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1);
+  }
+}
+const tags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]);
+---
+
+<BaseLayout title="标签">
+  <h1 class="text-2xl font-bold mb-8">全部标签</h1>
+
+  {tags.length === 0 ? (
+    <p class="text-text-secondary">还没有标签。</p>
+  ) : (
+    <div class="flex flex-wrap gap-3">
+      {tags.map(([tag, count]) => (
+        <a
+          href={`/tags/${tag}`}
+          class="px-4 py-2 bg-gray-100 rounded-full text-sm hover:bg-primary hover:text-white transition-colors"
+        >
+          {tag}
+          <span class="ml-1 text-text-secondary">({count})</span>
+        </a>
+      ))}
+    </div>
+  )}
+</BaseLayout>
