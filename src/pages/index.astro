@@ -32,13 +32,13 @@ const popularTags = [...tagCount.entries()]
       </p>
       <div class="flex flex-wrap gap-3">
         <a
-          href="/posts"
+          href="/blog/posts"
           class="inline-flex items-center px-6 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors"
         >
           开始阅读
         </a>
         <a
-          href="/posts"
+          href="/blog/posts"
           class="inline-flex items-center px-6 py-2.5 bg-white text-text text-sm font-medium rounded-lg border border-border hover:border-primary hover:text-primary transition-colors"
         >
           查看文章
@@ -51,7 +51,7 @@ const popularTags = [...tagCount.entries()]
       <div class="relative w-full max-w-[520px]">
         <div class="rounded-3xl overflow-hidden border border-border bg-white shadow-sm">
           <img
-            src="/images/image.png"
+            src="/blog/images/image.png"
             alt="技术博客主视觉"
             class="w-full h-auto block"
             loading="eager"
@@ -65,7 +65,7 @@ const popularTags = [...tagCount.entries()]
   <section class="py-10 border-t border-border">
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-xl font-semibold">最近文章</h2>
-      <a href="/posts" class="text-sm text-primary hover:underline">查看全部 &rarr;</a>
+      <a href="/blog/posts" class="text-sm text-primary hover:underline">查看全部 &rarr;</a>
     </div>
 
     <div class="max-w-3xl">
@@ -90,12 +90,12 @@ const popularTags = [...tagCount.entries()]
     <section class="py-10 border-t border-border">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-semibold">标签</h2>
-        <a href="/tags" class="text-sm text-primary hover:underline">全部标签 &rarr;</a>
+        <a href="/blog/tags" class="text-sm text-primary hover:underline">全部标签 &rarr;</a>
       </div>
       <div class="flex flex-wrap gap-2.5">
         {popularTags.map(([tag, count]) => (
           <a
-            href={`/tags/${tag}`}
+            href={`/blog/tags/${tag}`}
             class="px-4 py-2 text-sm bg-white border border-border rounded-full hover:bg-primary hover:text-white hover:border-primary transition-all"
           >
             {tag}

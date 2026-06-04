@@ -1,9 +1,9 @@
 ---
 const navLinks = [
-  { href: '/', label: '首页' },
-  { href: '/posts', label: '文章' },
-  { href: '/tags', label: '标签' },
-  { href: '/about', label: '关于' },
+  { href: '/blog/', label: '首页' },
+  { href: '/blog/posts', label: '文章' },
+  { href: '/blog/tags', label: '标签' },
+  { href: '/blog/about', label: '关于' },
 ];
 
 const currentPath = Astro.url.pathname;
@@ -11,7 +11,7 @@ const currentPath = Astro.url.pathname;
 
 <header class="border-b border-border">
   <nav class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-    <a href="/" class="text-lg font-bold tracking-tight hover:text-primary transition-colors">
+    <a href="/blog/" class="text-lg font-bold tracking-tight hover:text-primary transition-colors">
       我的博客
     </a>
     <ul class="flex gap-6 text-sm">

@@ -30,7 +30,7 @@ const dateStr = post.data.date.toLocaleDateString('zh-CN', {
           <div class="flex gap-1.5">
             {post.data.tags.map((tag) => (
               <a
-                href={`/tags/${tag}`}
+                href={`/blog/tags/${tag}`}
                 class="px-2 py-0.5 bg-gray-100 rounded-full hover:bg-primary hover:text-white transition-colors"
               >
                 {tag}
@@ -50,6 +50,6 @@ const dateStr = post.data.date.toLocaleDateString('zh-CN', {
   </article>
 
   <div class="mt-12 pt-6 border-t border-border">
-    <a href="/posts" class="text-sm text-primary hover:underline">&larr; 返回全部文章</a>
+    <a href="/blog/posts" class="text-sm text-primary hover:underline">&larr; 返回全部文章</a>
   </div>
 </BaseLayout>
