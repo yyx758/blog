@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import AdminPanel from '../components/AdminPanel.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -30,6 +31,7 @@ const mainClass = wide
       <slot />
     </main>
     <Footer />
+    <AdminPanel />
 
     <button
       id="back-to-top"

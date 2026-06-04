@@ -1,0 +1,323 @@
+---
+---
+
+<!-- 管理员按钮 -->
+<button
+  id="admin-toggle"
+  class="fixed bottom-8 left-8 p-3 bg-bg-card border border-border text-text-secondary rounded-full shadow-sm hover:shadow-md hover:border-primary hover:text-primary transition-all z-40"
+  title="管理文章"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+</button>
+
+<!-- 管理面板 -->
+<div
+  id="admin-panel"
+  class="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-bg-card border-l border-border shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col"
+>
+  <!-- 面板头部 -->
+  <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+    <h2 class="text-lg font-semibold">文章管理</h2>
+    <button id="admin-close" class="p-1.5 text-text-secondary hover:text-primary transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 登录视图 -->
+  <div id="admin-login" class="flex-1 flex flex-col items-center justify-center px-8 text-center">
+    <div class="mb-6 text-text-secondary">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-12 h-12 mx-auto mb-4 opacity-40">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+        <polyline points="10 17 15 12 10 7"/>
+        <line x1="15" y1="12" x2="3" y2="12"/>
+      </svg>
+      <p class="text-sm">使用 GitHub 账号登录后<br>即可管理文章</p>
+    </div>
+    <button
+      id="github-login"
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#24292f] text-white text-sm font-medium rounded-lg hover:bg-[#32383f] transition-colors"
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+      </svg>
+      GitHub 登录
+    </button>
+  </div>
+
+  <!-- 文章列表视图 -->
+  <div id="admin-list" class="flex-1 flex-col hidden">
+    <div class="px-5 py-3 border-b border-border flex items-center justify-between">
+      <span id="post-count" class="text-sm text-text-secondary">0 篇文章</span>
+      <button
+        id="new-post-btn"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-light transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        新建文章
+      </button>
+    </div>
+    <div id="posts-list" class="flex-1 overflow-y-auto"></div>
+  </div>
+
+  <!-- 编辑器视图 -->
+  <div id="admin-editor" class="flex-1 flex-col hidden">
+    <div class="px-5 py-3 border-b border-border flex items-center gap-3">
+      <button id="editor-back" class="p-1.5 text-text-secondary hover:text-primary transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span id="editor-title" class="text-sm font-medium flex-1 truncate">新建文章</span>
+      <button id="editor-delete" class="p-1.5 text-red-400 hover:text-red-600 transition-colors hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </button>
+      <button
+        id="editor-save"
+        class="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-light transition-colors"
+      >
+        保存
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-text-secondary mb-1.5">标题</label>
+        <input id="edit-title" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="文章标题" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1.5">日期</label>
+          <input id="edit-date" type="date" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-text-secondary mb-1.5">标签（逗号分隔）</label>
+          <input id="edit-tags" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="前端, Astro" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-secondary mb-1.5">描述</label>
+        <input id="edit-desc" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="一句话描述" />
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="edit-draft" type="checkbox" class="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+        <label for="edit-draft" class="text-sm text-text-secondary">设为草稿</label>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-secondary mb-1.5">正文（Markdown）</label>
+        <textarea
+          id="edit-body"
+          rows="20"
+          class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-primary transition-colors resize-y"
+          placeholder="在此编写 Markdown 内容..."
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 加载状态 -->
+  <div id="admin-loading" class="absolute inset-0 flex items-center justify-center bg-bg-card/80 hidden z-10">
+    <div class="text-sm text-text-secondary">加载中...</div>
+  </div>
+</div>
+
+<!-- 遮罩层 -->
+<div id="admin-overlay" class="fixed inset-0 bg-black/20 z-40 hidden transition-opacity"></div>
+
+<script is:inline>
+(function() {
+  let token = localStorage.getItem('gh_token');
+  let posts = [];
+  let currentPost = null;
+
+  const panel = document.getElementById('admin-panel');
+  const overlay = document.getElementById('admin-overlay');
+  const loginView = document.getElementById('admin-login');
+  const listView = document.getElementById('admin-list');
+  const editorView = document.getElementById('admin-editor');
+  const loading = document.getElementById('admin-loading');
+
+  function showView(view) {
+    loginView.classList.add('hidden');
+    listView.classList.add('hidden');
+    editorView.classList.add('hidden');
+    view.classList.remove('hidden');
+    view.classList.add('flex');
+  }
+
+  function showLoading(show) {
+    loading.classList.toggle('hidden', !show);
+  }
+
+  // 打开/关闭面板
+  document.getElementById('admin-toggle').addEventListener('click', () => {
+    panel.classList.remove('translate-x-full');
+    overlay.classList.remove('hidden');
+    if (token) {
+      loadPosts();
+    } else {
+      showView(loginView);
+    }
+  });
+
+  document.getElementById('admin-close').addEventListener('click', closePanel);
+  overlay.addEventListener('click', closePanel);
+
+  function closePanel() {
+    panel.classList.add('translate-x-full');
+    overlay.classList.add('hidden');
+  }
+
+  // GitHub 登录
+  document.getElementById('github-login').addEventListener('click', () => {
+    const authWindow = window.open('/api/auth', 'github-oauth', 'width=600,height=700');
+    window.addEventListener('message', (e) => {
+      if (e.data?.token) {
+        token = e.data.token;
+        localStorage.setItem('gh_token', token);
+        loadPosts();
+      }
+    });
+  });
+
+  // 加载文章列表
+  async function loadPosts() {
+    showLoading(true);
+    try {
+      const res = await fetch('/api/posts', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to load');
+      posts = await res.json();
+      renderPostList();
+      showView(listView);
+    } catch (err) {
+      localStorage.removeItem('gh_token');
+      token = null;
+      showView(loginView);
+    }
+    showLoading(false);
+  }
+
+  function renderPostList() {
+    document.getElementById('post-count').textContent = `${posts.length} 篇文章`;
+    const container = document.getElementById('posts-list');
+    container.innerHTML = posts.map((p) => `
+      <div class="px-5 py-3 border-b border-border hover:bg-bg transition-colors cursor-pointer flex items-start gap-3" data-filename="${p.filename}">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <h4 class="text-sm font-medium truncate">${p.title}</h4>
+            ${p.draft ? '<span class="px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-700 rounded">草稿</span>' : ''}
+          </div>
+          <div class="flex items-center gap-2 mt-1 text-xs text-text-secondary">
+            <span>${p.date}</span>
+            ${p.tags.length ? '<span>·</span><span>' + p.tags.join(', ') + '</span>' : ''}
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-text-secondary mt-0.5 flex-shrink-0">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-filename]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const post = posts.find((p) => p.filename === el.dataset.filename);
+        if (post) openEditor(post);
+      });
+    });
+  }
+
+  // 新建文章
+  document.getElementById('new-post-btn').addEventListener('click', () => {
+    openEditor(null);
+  });
+
+  // 打开编辑器
+  function openEditor(post) {
+    currentPost = post;
+    document.getElementById('editor-title').textContent = post ? '编辑文章' : '新建文章';
+    document.getElementById('editor-delete').classList.toggle('hidden', !post);
+
+    document.getElementById('edit-title').value = post?.title || '';
+    document.getElementById('edit-date').value = post?.date || new Date().toISOString().split('T')[0];
+    document.getElementById('edit-tags').value = post?.tags?.join(', ') || '';
+    document.getElementById('edit-desc').value = post?.description || '';
+    document.getElementById('edit-draft').checked = post?.draft || false;
+    document.getElementById('edit-body').value = post?.body || '';
+
+    showView(editorView);
+  }
+
+  document.getElementById('editor-back').addEventListener('click', () => {
+    renderPostList();
+    showView(listView);
+  });
+
+  // 保存文章
+  document.getElementById('editor-save').addEventListener('click', async () => {
+    const title = document.getElementById('edit-title').value.trim();
+    if (!title) { alert('请输入标题'); return; }
+
+    const date = document.getElementById('edit-date').value;
+    const tags = document.getElementById('edit-tags').value.split(',').map((t) => t.trim()).filter(Boolean);
+    const description = document.getElementById('edit-desc').value.trim();
+    const draft = document.getElementById('edit-draft').checked;
+    const body = document.getElementById('edit-body').value;
+
+    showLoading(true);
+    try {
+      if (currentPost) {
+        // 编辑
+        const res = await fetch('/api/posts', {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...currentPost, title, date, tags, description, draft, body }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+      } else {
+        // 新建
+        const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
+        const filename = `${slug}.mdx`;
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename, title, date, tags, description, draft, body }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+      }
+      await loadPosts();
+    } catch (err) {
+      alert('保存失败: ' + err.message);
+    }
+    showLoading(false);
+  });
+
+  // 删除文章
+  document.getElementById('editor-delete').addEventListener('click', async () => {
+    if (!currentPost) return;
+    if (!confirm(`确定删除「${currentPost.title}」？`)) return;
+
+    showLoading(true);
+    try {
+      const res = await fetch('/api/posts', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: currentPost.filename, sha: currentPost.sha, title: currentPost.title }),
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      await loadPosts();
+    } catch (err) {
+      alert('删除失败: ' + err.message);
+    }
+    showLoading(false);
+  });
+})();
+</script>
