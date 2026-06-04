@@ -21,7 +21,8 @@ const mainClass = wide
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/blog/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title="我的博客" href="/rss.xml" />
     <title>{title} | 个人博客</title>
   </head>
   <body class="min-h-screen flex flex-col">
@@ -30,5 +31,31 @@ const mainClass = wide
       <slot />
     </main>
     <Footer />
+
+    <button
+      id="back-to-top"
+      class="fixed bottom-8 right-8 p-3 bg-primary text-white rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 hover:bg-primary-light z-50"
+      title="回到顶部"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+        <polyline points="18 15 12 9 6 15"/>
+      </svg>
+    </button>
+
+    <script is:inline>
+      const btn = document.getElementById('back-to-top');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+          btn?.classList.remove('opacity-0', 'pointer-events-none');
+          btn?.classList.add('opacity-100');
+        } else {
+          btn?.classList.add('opacity-0', 'pointer-events-none');
+          btn?.classList.remove('opacity-100');
+        }
+      });
+      btn?.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    </script>
   </body>
 </html>

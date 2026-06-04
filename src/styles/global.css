@@ -18,6 +18,14 @@ html {
   background-color: var(--color-bg);
 }
 
+html.dark {
+  --color-bg: #0f172a;
+  --color-bg-card: #1e293b;
+  --color-text: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-border: #334155;
+}
+
 /* Shiki code blocks */
 pre {
   border-radius: 0.5rem;
@@ -36,6 +44,10 @@ code {
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   font-size: 0.875em;
+}
+
+html.dark :not(pre) > code {
+  background: #1e293b;
 }
 
 /* Prose styling for article content */
@@ -61,3 +73,4 @@ code {
 .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
 .prose th, .prose td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; text-align: left; }
 .prose th { background: #f9fafb; font-weight: 600; }
+html.dark .prose th { background: #1e293b; }

@@ -17,7 +17,7 @@ const dateStr = date.toLocaleDateString('zh-CN', {
 ---
 
 <article class="py-6 border-b border-border last:border-b-0">
-  <a href={`/blog/posts/${slug}`} class="group block">
+  <a href={`/posts/${slug}`} class="group block">
     <h3 class="text-lg font-semibold group-hover:text-primary transition-colors">
       {title}
     </h3>
@@ -29,7 +29,13 @@ const dateStr = date.toLocaleDateString('zh-CN', {
       {tags.length > 0 && (
         <div class="flex gap-1.5">
           {tags.map((tag) => (
-            <span class="px-2 py-0.5 bg-gray-100 rounded-full">{tag}</span>
+            <a
+              href={`/tags/${tag}`}
+              class="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 rounded-full hover:bg-primary hover:text-white transition-colors"
+              onclick="event.stopPropagation()"
+            >
+              {tag}
+            </a>
           ))}
         </div>
       )}

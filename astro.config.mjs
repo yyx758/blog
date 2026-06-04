@@ -4,8 +4,7 @@ import mdx from '@astrojs/mdx';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://yyx758.github.io',
-  base: '/blog',
+  site: 'https://my-blog-yyyyx.vercel.app',
   integrations: [mdx()],
   vite: {
     plugins: [tailwindcss()],
