@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GITHUB_REPO = (process.env.GITHUB_REPO || 'yyx758/blog').trim();
+const GITHUB_REPO = 'yyx758/blog';
 const GITHUB_BRANCH = 'main';
 const CONTENT_PATH = 'src/content/posts';
 
