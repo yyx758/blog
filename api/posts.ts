@@ -69,6 +69,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     switch (method) {
       case 'GET': {
+        // 图片代理: /api/posts?image=xxx.png
+        const imageParam = (req.query as any)?.image;
+        if (imageParam) {
+          const imgPath = `public/images/${imageParam}`;
+          const imgResp = await githubFetch(
+            `https://api.github.com/repos/${GITHUB_REPO}/contents/${imgPath}?ref=${GITHUB_BRANCH}`,
+            token
+          );
+          if (!imgResp.ok) {
+            res.status(404).json({ error: 'Image not found' });
+            return;
+          }
+          const imgData = await imgResp.json();
+          if (imgData.content && imgData.encoding === 'base64') {
+            const buf = Buffer.from(imgData.content, 'base64');
+            const ext = imageParam.split('.').pop()?.toLowerCase() || 'png';
+            const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : 'image/png';
+            res.setHeader('Content-Type', mime);
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.status(200).send(buf);
+          } else {
+            res.status(404).json({ error: 'Image data error' });
+          }
+          return;
+        }
+
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}?ref=${GITHUB_BRANCH}`;
         const response = await githubFetch(url, token);
         const files = await response.json();
@@ -145,7 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const imgData = await imgResponse.json();
           if (imgResponse.ok) {
             triggerRedeploy();
-            res.status(200).json({ success: true, path: `/images/${imgFilename}`, sha: imgData.content?.sha });
+            res.status(200).json({ success: true, path: `/api/posts?image=${imgFilename}`, sha: imgData.content?.sha });
           } else {
             res.status(imgResponse.status).json({ error: imgData.message });
           }

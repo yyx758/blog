@@ -575,7 +575,7 @@
 
     // 插入占位
     var cursorPos = editBody.selectionStart;
-    var placeholder = '\n![上传中...](/images/' + name + ')\n';
+    var placeholder = '\n![上传中...](/api/posts?image=' + name + ')\n';
     editBody.setRangeText(placeholder, cursorPos, cursorPos, 'end');
     editBody.dispatchEvent(new Event('input'));
 
