@@ -114,6 +114,7 @@ Vercel 需要这些环境变量才能工作：
 | `GITHUB_CLIENT_SECRET` | `*****` | OAuth 应用的密钥，用于验证身份（保密，不暴露给前端） |
 | `SITE_URL` | `https://my-blog-yyyyx.vercel.app` | OAuth 回调地址，登录成功后跳转回来的地址 |
 | `GITHUB_REPO` | `yyx758/blog` | 告诉 API 操作哪个仓库的文章 |
+| `GITHUB_TOKEN` | `github_pat_...` | 可选；仓库为私有时，供图片代理读取 `public/images/` 中的图片 |
 
 **为什么需要这些？**
 ```
@@ -121,6 +122,7 @@ Vercel 需要这些环境变量才能工作：
 没有 GITHUB_CLIENT_SECRET → 无法换取 access_token（安全验证）
 没有 SITE_URL            → 登录成功后不知道跳转回哪里
 没有 GITHUB_REPO         → API 不知道去哪个仓库读写文章
+私有仓库没有 GITHUB_TOKEN → 文章编辑器里的 /api/posts?image=... 图片代理无法读取图片
 ```
 
 ---
@@ -196,6 +198,9 @@ Vercel CDN 节点（全球分布）
 - 普通服务器：一直运行，占着资源
 - Serverless：只在请求来时运行，用完就释放
 - 优点：不用管服务器维护，按使用量计费（Vercel 免费额度够用）
+
+### Q: 编辑器粘贴图片后 `/api/posts?image=...` 报错怎么办？
+**A**: 图片标签请求不能携带 `Authorization` 头，所以图片代理必须允许免登录读取。当前代码已对 `GET /api/posts?image=...` 单独放行；如果仓库是私有的，还需要在 Vercel 添加 `GITHUB_TOKEN`，权限至少能读取该仓库内容。
 
 ### Q: 为什么文章存在 GitHub 而不是数据库？
 **A**: 这是"Git-based CMS"模式。好处是：

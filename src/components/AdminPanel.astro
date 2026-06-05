@@ -323,10 +323,56 @@
     setTab('edit');
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function sanitizeHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('script, iframe, object, embed, link, style').forEach((el) => el.remove());
+    template.content.querySelectorAll('*').forEach((el) => {
+      [...el.attributes].forEach((attr) => {
+        const name = attr.name.toLowerCase();
+        const value = attr.value.trim().toLowerCase();
+        if (
+          name.startsWith('on') ||
+          name === 'srcdoc' ||
+          ((name === 'href' || name === 'src') && value.startsWith('javascript:'))
+        ) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+    return template.innerHTML;
+  }
+
+  async function getErrorMessage(res, fallback) {
+    try {
+      const data = await res.json();
+      return data?.error || data?.message || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function makeSlug(title) {
+    const slug = String(title || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9一-鿿]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return slug || `post-${Date.now()}`;
+  }
+
   function renderPreview() {
     const md = editBody.value;
     if (typeof marked !== 'undefined') {
-      previewContent.innerHTML = marked.parse(md);
+      previewContent.innerHTML = sanitizeHtml(marked.parse(md));
     } else {
       previewContent.textContent = md;
     }
@@ -592,7 +638,11 @@
         body: JSON.stringify({ action: 'upload-image', filename: name, content: base64 }),
       }).then(function(res) {
         console.log('[paste] upload response:', res.status);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          return getErrorMessage(res, 'HTTP ' + res.status).then(function(message) {
+            throw new Error(message);
+          });
+        }
         return res.json();
       }).then(function(result) {
         console.log('[paste] upload success:', result.path);
@@ -671,25 +721,28 @@
   function renderPostList() {
     document.getElementById('post-count').textContent = `${posts.length} 篇文章`;
     const container = document.getElementById('posts-list');
-    container.innerHTML = posts.map((p) => `
-      <div class="px-5 py-3 border-b border-border hover:bg-bg transition-colors cursor-pointer flex items-start gap-3" data-filename="${p.filename}">
+    container.innerHTML = posts.map((p) => {
+      const tags = Array.isArray(p.tags) ? p.tags : [];
+      return `
+      <div class="px-5 py-3 border-b border-border hover:bg-bg transition-colors cursor-pointer flex items-start gap-3" data-filename="${escapeHtml(p.filename)}">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
-            <h4 class="text-sm font-medium truncate">${p.title}</h4>
+            <h4 class="text-sm font-medium truncate">${escapeHtml(p.title)}</h4>
             ${p.draft ? '<span class="px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-700 rounded">草稿</span>' : ''}
           </div>
           <div class="flex items-center gap-2 mt-1 text-xs text-text-secondary">
-            <span>${p.date}</span>
-            ${p.tags.length ? '<span>·</span><span>' + p.tags.join(', ') + '</span>' : ''}
+            <span>${escapeHtml(p.date)}</span>
+            ${tags.length ? '<span>·</span><span>' + escapeHtml(tags.join(', ')) + '</span>' : ''}
           </div>
         </div>
-        <button data-delete="${p.filename}" data-sha="${p.sha}" data-title="${p.title}" class="p-1.5 text-text-secondary hover:text-red-500 transition-colors flex-shrink-0" title="删除">
+        <button data-delete="${escapeHtml(p.filename)}" data-sha="${escapeHtml(p.sha)}" data-title="${escapeHtml(p.title)}" class="p-1.5 text-text-secondary hover:text-red-500 transition-colors flex-shrink-0" title="删除">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
         </button>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     container.querySelectorAll('[data-filename]').forEach((el) => {
       el.addEventListener('click', (e) => {
@@ -785,7 +838,7 @@
         const data = await res.json();
         currentPost.sha = data.sha;
       } else {
-        const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
+        const slug = makeSlug(title);
         const filename = `${slug}.mdx`;
         const res = await fetch('/api/posts', {
           method: 'POST',
@@ -875,7 +928,7 @@
       if (dr) draft = dr[1] === 'true';
     }
 
-    const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
+    const slug = makeSlug(title);
     document.getElementById('upload-filename').value = `${slug}.mdx`;
     document.getElementById('upload-title').value = title;
     document.getElementById('upload-date').value = date;
@@ -889,7 +942,7 @@
   });
 
   document.getElementById('upload-title').addEventListener('input', (e) => {
-    const slug = e.target.value.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
+    const slug = makeSlug(e.target.value);
     if (slug) document.getElementById('upload-filename').value = `${slug}.mdx`;
   });
 
@@ -898,7 +951,7 @@
     if (!title) { alert('请输入标题'); return; }
     if (!pendingContent) { alert('文件内容为空'); return; }
 
-    const filename = document.getElementById('upload-filename').value.trim() || `${title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '')}.mdx`;
+    const filename = document.getElementById('upload-filename').value.trim() || `${makeSlug(title)}.mdx`;
     const date = document.getElementById('upload-date').value;
     const tags = document.getElementById('upload-tags').value.split(',').map(t => t.trim()).filter(Boolean);
     const description = document.getElementById('upload-desc').value.trim();

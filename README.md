@@ -47,7 +47,7 @@
 │   │   │   └── [...slug].astro  # 文章详情
 │   │   ├── tags/
 │   │   │   ├── index.astro      # 标签列表
-│   │   │   └── [...tag].astro   # 标签下的文章
+│   │   │   └── [tag].astro      # 标签下的文章
 │   │   ├── about.astro      # 关于页面
 │   │   └── 404.astro        # 404 页面
 │   ├── styles/
@@ -86,6 +86,7 @@ npm run preview  # 本地预览构建结果
    - `GITHUB_CLIENT_SECRET` — OAuth App 的 Client Secret
    - `SITE_URL` — `https://your-domain.vercel.app`
    - `GITHUB_REPO` — `username/repo` 格式
+   - `GITHUB_TOKEN` — 可选；仓库为私有时用于 `/api/posts?image=...` 图片代理读取图片
 
 详见 [部署指南](md/deployment-guide.md)。
 

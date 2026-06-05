@@ -2,12 +2,19 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID?.trim();
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET?.trim();
+const SITE_URL = (process.env.SITE_URL || 'https://my-blog-yyyyx.vercel.app').trim();
+const SITE_ORIGIN = new URL(SITE_URL).origin;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code } = req.query;
 
+  if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+    res.status(500).json({ error: 'GitHub OAuth 环境变量未配置' });
+    return;
+  }
+
   if (!code) {
-    const redirectUri = `${(process.env.SITE_URL || 'https://my-blog-yyyyx.vercel.app').trim()}/api/auth`;
+    const redirectUri = `${SITE_ORIGIN}/api/auth`;
     const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo`;
     res.redirect(url);
     return;
@@ -36,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.setHeader('Content-Type', 'text/html');
       res.send(`
         <script>
-          window.opener?.postMessage({ token: '${data.access_token}' }, '*');
+          window.opener?.postMessage({ token: ${JSON.stringify(data.access_token)} }, ${JSON.stringify(SITE_ORIGIN)});
           window.close();
         </script>
         <p>授权成功，请关闭此窗口。</p>

@@ -1,22 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const GITHUB_REPO = (process.env.GITHUB_REPO || 'yyx758/blog').trim();
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN?.trim();
 const GITHUB_BRANCH = 'main';
 const CONTENT_PATH = 'src/content/posts';
 
-async function githubFetch(url: string, token: string, options?: RequestInit) {
+async function githubFetch(url: string, token?: string, options?: RequestInit) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github.v3+json',
+    ...((options?.headers as Record<string, string> | undefined) || {}),
+  };
+
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (options?.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+
   try {
     return await fetch(url, {
       ...options,
       signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
+      headers,
     });
   } finally {
     clearTimeout(timer);
@@ -25,12 +29,7 @@ async function githubFetch(url: string, token: string, options?: RequestInit) {
 
 function getFileContent(data: Record<string, unknown>) {
   if (data.encoding === 'base64' && typeof data.content === 'string') {
-    return decodeURIComponent(
-      atob(data.content)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
+    return Buffer.from(data.content.replace(/\s/g, ''), 'base64').toString('utf8');
   }
   return '';
 }
@@ -44,57 +43,105 @@ async function triggerRedeploy() {
   }
 }
 
+function encodeContent(content: string) {
+  return Buffer.from(content, 'utf8').toString('base64');
+}
+
+function yamlString(value: unknown) {
+  return JSON.stringify(String(value || ''));
+}
+
 function buildFrontmatter(post: Record<string, unknown>) {
   const lines = ['---'];
-  lines.push(`title: "${post.title}"`);
-  lines.push(`date: ${post.date}`);
+  lines.push(`title: ${yamlString(post.title)}`);
+  lines.push(`date: ${post.date || new Date().toISOString().split('T')[0]}`);
   if (Array.isArray(post.tags) && post.tags.length > 0) {
-    lines.push(`tags: [${post.tags.map((t: string) => `"${t}"`).join(', ')}]`);
+    lines.push(`tags: [${post.tags.map((t) => yamlString(t)).join(', ')}]`);
   }
-  if (post.description) lines.push(`description: "${post.description}"`);
+  if (post.description) lines.push(`description: ${yamlString(post.description)}`);
   if (post.draft) lines.push(`draft: true`);
   lines.push('---');
   return lines.join('\n');
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    res.status(401).json({ error: '未授权' });
+function getQueryString(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isSafeImageName(filename: unknown) {
+  return (
+    typeof filename === 'string' &&
+    /^(?!\.)(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9._-]*\.(png|jpe?g|gif|webp|avif)$/i.test(filename)
+  );
+}
+
+function isSafePostFilename(filename: unknown) {
+  return (
+    typeof filename === 'string' &&
+    /^(?!\.)(?!.*\.\.)[A-Za-z0-9_\-\u4e00-\u9fff][A-Za-z0-9._\-\u4e00-\u9fff]*\.(md|mdx)$/i.test(filename)
+  );
+}
+
+function getImageMime(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'avif') return 'image/avif';
+  return 'image/png';
+}
+
+async function serveImage(filename: string, res: VercelResponse) {
+  if (!isSafeImageName(filename)) {
+    res.status(400).json({ error: 'Invalid image filename' });
     return;
   }
 
+  const imgPath = `public/images/${filename}`;
+  const imgResp = await githubFetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/${imgPath}?ref=${GITHUB_BRANCH}`,
+    GITHUB_TOKEN
+  );
+
+  if (!imgResp.ok) {
+    const detail = await imgResp.json().catch(() => ({}));
+    res.status(imgResp.status === 404 ? 404 : 502).json({
+      error: imgResp.status === 404 ? 'Image not found' : 'GitHub image fetch failed',
+      detail: detail.message,
+    });
+    return;
+  }
+
+  const imgData = await imgResp.json();
+  if (typeof imgData.content !== 'string' || imgData.encoding !== 'base64') {
+    res.status(404).json({ error: 'Image data error' });
+    return;
+  }
+
+  const buf = Buffer.from(imgData.content.replace(/\s/g, ''), 'base64');
+  res.setHeader('Content-Type', getImageMime(filename));
+  res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
+  res.status(200).send(buf);
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { method } = req;
 
   try {
+    const imageParam = getQueryString((req.query as Record<string, string | string[] | undefined>)?.image);
+    if (method === 'GET' && imageParam) {
+      await serveImage(imageParam, res);
+      return;
+    }
+
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim();
+    if (!token) {
+      res.status(401).json({ error: '未授权' });
+      return;
+    }
+
     switch (method) {
       case 'GET': {
-        // 图片代理: /api/posts?image=xxx.png
-        const imageParam = (req.query as any)?.image;
-        if (imageParam) {
-          const imgPath = `public/images/${imageParam}`;
-          const imgResp = await githubFetch(
-            `https://api.github.com/repos/${GITHUB_REPO}/contents/${imgPath}?ref=${GITHUB_BRANCH}`,
-            token
-          );
-          if (!imgResp.ok) {
-            res.status(404).json({ error: 'Image not found' });
-            return;
-          }
-          const imgData = await imgResp.json();
-          if (imgData.content && imgData.encoding === 'base64') {
-            const buf = Buffer.from(imgData.content, 'base64');
-            const ext = imageParam.split('.').pop()?.toLowerCase() || 'png';
-            const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : 'image/png';
-            res.setHeader('Content-Type', mime);
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-            res.status(200).send(buf);
-          } else {
-            res.status(404).json({ error: 'Image data error' });
-          }
-          return;
-        }
-
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}?ref=${GITHUB_BRANCH}`;
         const response = await githubFetch(url, token);
         const files = await response.json();
@@ -151,8 +198,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // 图片上传
         if (req.body.action === 'upload-image') {
           const { filename: imgFilename, content: imgContent } = req.body;
-          if (!imgFilename || !imgContent) {
-            res.status(400).json({ error: '缺少文件名或内容' });
+          if (!isSafeImageName(imgFilename) || !imgContent) {
+            res.status(400).json({ error: '图片文件名或内容无效' });
             return;
           }
           const imgPath = `public/images/${imgFilename}`;
@@ -171,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const imgData = await imgResponse.json();
           if (imgResponse.ok) {
             triggerRedeploy();
-            res.status(200).json({ success: true, path: `/api/posts?image=${imgFilename}`, sha: imgData.content?.sha });
+            res.status(200).json({ success: true, path: `/api/posts?image=${encodeURIComponent(imgFilename)}`, sha: imgData.content?.sha });
           } else {
             res.status(imgResponse.status).json({ error: imgData.message });
           }
@@ -180,17 +227,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // 文章上传
         const { filename, title, date, tags, description, draft, body } = req.body;
-        if (!filename || !title) {
-          res.status(400).json({ error: '缺少必填字段' });
+        if (!isSafePostFilename(filename) || !title) {
+          res.status(400).json({ error: '文件名或标题无效' });
           return;
         }
 
         const content = buildFrontmatter({ title, date, tags, description, draft }) + '\n\n' + (body || '');
-        const encoded = btoa(
-          encodeURIComponent(content).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-            String.fromCharCode(parseInt(p1, 16))
-          )
-        );
+        const encoded = encodeContent(content);
 
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${filename}`;
         const response = await githubFetch(url, token, {
@@ -214,17 +257,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       case 'PUT': {
         const { filename: editFilename, sha, title: editTitle, date: editDate, tags: editTags, description: editDesc, draft: editDraft, body: editBody } = req.body;
-        if (!editFilename || !sha) {
-          res.status(400).json({ error: '缺少必填字段' });
+        if (!isSafePostFilename(editFilename) || !sha) {
+          res.status(400).json({ error: '文件名或 sha 无效' });
           return;
         }
 
         const editContent = buildFrontmatter({ title: editTitle, date: editDate, tags: editTags, description: editDesc, draft: editDraft }) + '\n\n' + (editBody || '');
-        const editEncoded = btoa(
-          encodeURIComponent(editContent).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-            String.fromCharCode(parseInt(p1, 16))
-          )
-        );
+        const editEncoded = encodeContent(editContent);
 
         const editUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${editFilename}`;
         const editResponse = await githubFetch(editUrl, token, {
@@ -249,8 +288,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       case 'DELETE': {
         const { filename: delFilename, sha: delSha, title: delTitle } = req.body;
-        if (!delFilename || !delSha) {
-          res.status(400).json({ error: '缺少必填字段' });
+        if (!isSafePostFilename(delFilename) || !delSha) {
+          res.status(400).json({ error: '文件名或 sha 无效' });
           return;
         }
 
