@@ -531,68 +531,120 @@
 
   // ==================== 粘贴图片 ====================
 
-  editBody.addEventListener('paste', async (e) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
+  editBody.addEventListener('paste', async function(e) {
+    var cd = e.clipboardData || window.clipboardData;
+    if (!cd) return;
 
-    const imageFiles = [];
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        const file = item.getAsFile();
-        if (file) imageFiles.push(file);
+    // 收集图片文件
+    var imageFiles = [];
+
+    // 遍历 clipboard items（用 Array.from 兼容不同浏览器）
+    try {
+      var items = cd.items;
+      if (items && items.length > 0) {
+        var arr = Array.prototype.slice.call(items);
+        for (var i = 0; i < arr.length; i++) {
+          var item = arr[i];
+          if (item.kind === 'file') {
+            try {
+              var f = item.getAsFile();
+              if (f && f.type && f.type.startsWith('image/')) {
+                imageFiles.push(f);
+              }
+            } catch (err2) {}
+          }
+        }
+      }
+    } catch (err) {}
+
+    // 备用: 直接从 files 取
+    if (imageFiles.length === 0 && cd.files && cd.files.length > 0) {
+      var fileArr = Array.prototype.slice.call(cd.files);
+      for (var i = 0; i < fileArr.length; i++) {
+        var f = fileArr[i];
+        if (f && f.type && f.type.startsWith('image/')) {
+          imageFiles.push(f);
+        }
       }
     }
+
+    // 备用: 现代 API navigator.clipboard.read()
+    if (imageFiles.length === 0 && navigator.clipboard && navigator.clipboard.read) {
+      try {
+        var clipItems = await navigator.clipboard.read();
+        for (var i = 0; i < clipItems.length; i++) {
+          var clipItem = clipItems[i];
+          var types = clipItem.types || [];
+          for (var j = 0; j < types.length; j++) {
+            if (types[j].startsWith('image/')) {
+              try {
+                var blob = await clipItem.getType(types[j]);
+                imageFiles.push(blob);
+              } catch (e3) {}
+            }
+          }
+        }
+      } catch (err) {}
+    }
+
     if (imageFiles.length === 0) return;
 
     e.preventDefault();
+    e.stopPropagation();
 
-    for (const file of imageFiles) {
-      const ext = file.type.split('/')[1] || 'png';
-      const name = `paste-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    for (var i = 0; i < imageFiles.length; i++) {
+      var file = imageFiles[i];
+      var ext = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+      var name = 'paste-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8) + '.' + ext;
 
       // 插入占位符
-      const placeholder = `![上传中...](/${name})`;
-      const start = editBody.selectionStart;
-      editBody.setRangeText(placeholder, start, start, 'end');
+      var placeholder = '![' + name + '](/images/' + name + ' "上传中...")';
+      var cursorPos = editBody.selectionStart;
+      editBody.setRangeText(placeholder, cursorPos, cursorPos, 'end');
       editBody.dispatchEvent(new Event('input'));
 
       try {
-        // base64 编码
-        const base64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(',')[1]);
+        // 读取并转 base64
+        var base64 = await new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function() {
+            var result = reader.result || '';
+            var data = String(result);
+            var commaIdx = data.indexOf(',');
+            resolve(commaIdx >= 0 ? data.substring(commaIdx + 1) : data);
           };
+          reader.onerror = function() { reject(new Error('读取文件失败')); };
           reader.readAsDataURL(file);
         });
 
-        // 上传到 GitHub
-        const res = await fetch('/api/upload', {
+        // 上传
+        var res = await fetch('/api/upload', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: name, content: base64, mimeType: file.type }),
         });
 
-        if (!res.ok) throw new Error('Upload failed');
-        const data = await res.json();
+        if (!res.ok) {
+          var errData = await res.json().catch(function() { return {}; });
+          throw new Error(errData.error || '上传失败 (' + res.status + ')');
+        }
 
-        // 替换占位符为真实路径
-        const currentVal = editBody.value;
-        const placeholderText = `![上传中...](/${name})`;
-        const idx = currentVal.indexOf(placeholderText);
+        var data = await res.json();
+
+        // 替换占位符
+        var currentVal = editBody.value;
+        var idx = currentVal.indexOf(placeholder);
         if (idx !== -1) {
-          const realMarkdown = `![${name}](${data.path})`;
-          editBody.setRangeText(realMarkdown, idx, idx + placeholderText.length, 'end');
+          var realMarkdown = '![' + name + '](' + data.path + ')';
+          editBody.setRangeText(realMarkdown, idx, idx + placeholder.length, 'end');
           editBody.dispatchEvent(new Event('input'));
         }
       } catch (err) {
-        // 上传失败，移除占位符
-        const currentVal = editBody.value;
-        const placeholderText = `![上传中...](/${name})`;
-        const idx = currentVal.indexOf(placeholderText);
+        // 移除占位符
+        var currentVal = editBody.value;
+        var idx = currentVal.indexOf(placeholder);
         if (idx !== -1) {
-          editBody.setRangeText('', idx, idx + placeholderText.length, 'end');
+          editBody.setRangeText('', idx, idx + placeholder.length, 'end');
           editBody.dispatchEvent(new Event('input'));
         }
         alert('图片上传失败: ' + (err.message || err));
