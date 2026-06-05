@@ -89,40 +89,23 @@ const focusAreas = [
       </dl>
     </div>
 
-    <div class="rounded-xl border border-border bg-bg-card p-3 shadow-sm">
-      <div class="overflow-hidden rounded-lg border border-border bg-[#0b1220] text-slate-100 shadow-inner">
-        <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div class="flex gap-1.5">
-            <span class="size-2.5 rounded-full bg-red-400"></span>
-            <span class="size-2.5 rounded-full bg-amber-300"></span>
-            <span class="size-2.5 rounded-full bg-emerald-400"></span>
-          </div>
-          <span class="font-mono text-xs text-slate-400">learning-log.mdx</span>
-        </div>
-        <div class="grid gap-0 p-4 font-mono text-[12px] leading-6 sm:text-sm">
-          <p><span class="text-slate-500">01</span> <span class="text-sky-300">---</span></p>
-          <p><span class="text-slate-500">02</span> <span class="text-violet-300">title:</span> <span class="text-emerald-200">"Spring AI 学习记录"</span></p>
-          <p><span class="text-slate-500">03</span> <span class="text-violet-300">tags:</span> [<span class="text-emerald-200">"AI"</span>, <span class="text-emerald-200">"Java"</span>]</p>
-          <p><span class="text-slate-500">04</span> <span class="text-sky-300">---</span></p>
-          <p><span class="text-slate-500">05</span></p>
-          <p><span class="text-slate-500">06</span> <span class="text-blue-300">##</span> 从概念到工程实践</p>
-          <p><span class="text-slate-500">07</span> 将阅读、实验和踩坑记录成可检索的知识库。</p>
-        </div>
-        <div class="grid grid-cols-3 border-t border-white/10 text-xs text-slate-400">
-          <div class="border-r border-white/10 px-4 py-3">
-            <span class="block text-slate-100">MDX</span>
-            内容结构
-          </div>
-          <div class="border-r border-white/10 px-4 py-3">
-            <span class="block text-slate-100">Astro</span>
-            静态构建
-          </div>
-          <div class="px-4 py-3">
-            <span class="block text-slate-100">GitHub</span>
-            版本记录
-          </div>
-        </div>
-      </div>
+    <div class="relative overflow-hidden rounded-xl border border-border bg-bg-card shadow-sm">
+      <img
+        src="/images/hero-developer-desk-light.jpg"
+        alt="日间开发者桌面，包含笔记本电脑、键盘、笔记本和技术书籍"
+        class="aspect-[16/9] w-full object-cover dark:hidden"
+        loading="eager"
+        width="1680"
+        height="945"
+      />
+      <img
+        src="/images/hero-developer-desk-dark.jpg"
+        alt="夜间开发者桌面，包含笔记本电脑、键盘、笔记本和技术书籍"
+        class="hidden aspect-[16/9] w-full object-cover dark:block"
+        loading="eager"
+        width="1680"
+        height="945"
+      />
     </div>
   </section>
 
