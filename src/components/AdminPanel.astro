@@ -83,6 +83,7 @@
         </svg>
       </button>
       <span id="editor-title" class="text-sm font-medium">新建文章</span>
+      <span id="draft-status" class="hidden text-[11px] text-text-secondary bg-bg px-2 py-0.5 rounded-full"></span>
     </div>
     <div class="flex items-center gap-2">
       <!-- 预览切换 -->
@@ -98,9 +99,15 @@
       </button>
       <button
         id="editor-save"
+        class="px-3 py-1.5 border border-border text-text-secondary text-xs font-medium rounded-lg hover:bg-bg transition-colors"
+      >
+        保存草稿
+      </button>
+      <button
+        id="editor-publish"
         class="px-4 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-light transition-colors"
       >
-        保存
+        发布
       </button>
     </div>
   </div>
@@ -528,12 +535,15 @@
   function renderPostList() {
     document.getElementById('post-count').textContent = `${posts.length} 篇文章`;
     const container = document.getElementById('posts-list');
-    container.innerHTML = posts.map((p) => `
+    container.innerHTML = posts.map((p) => {
+      const hasLocalDraft = !!loadLocalDraft(p.filename);
+      return `
       <div class="px-5 py-3 border-b border-border hover:bg-bg transition-colors cursor-pointer flex items-start gap-3" data-filename="${p.filename}">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
             <h4 class="text-sm font-medium truncate">${p.title}</h4>
             ${p.draft ? '<span class="px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-700 rounded">草稿</span>' : ''}
+            ${hasLocalDraft ? '<span class="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded">有未发布修改</span>' : ''}
           </div>
           <div class="flex items-center gap-2 mt-1 text-xs text-text-secondary">
             <span>${p.date}</span>
@@ -544,7 +554,8 @@
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     container.querySelectorAll('[data-filename]').forEach((el) => {
       el.addEventListener('click', () => {
@@ -565,20 +576,33 @@
     editorTitle.textContent = post ? '编辑文章' : '新建文章';
     document.getElementById('editor-delete').classList.toggle('hidden', !post);
 
-    document.getElementById('edit-title').value = post?.title || '';
-    document.getElementById('edit-date').value = post?.date || new Date().toISOString().split('T')[0];
-    document.getElementById('edit-tags').value = post?.tags?.join(', ') || '';
-    document.getElementById('edit-desc').value = post?.description || '';
-    document.getElementById('edit-draft').checked = post?.draft || false;
-    document.getElementById('edit-body').value = post?.body || '';
+    // 检查是否有本地草稿
+    const localDraft = loadLocalDraft(post?.filename);
+    if (localDraft) {
+      document.getElementById('edit-title').value = localDraft.title || '';
+      document.getElementById('edit-date').value = localDraft.date || '';
+      document.getElementById('edit-tags').value = localDraft.tags || '';
+      document.getElementById('edit-desc').value = localDraft.description || '';
+      document.getElementById('edit-draft').checked = localDraft.draft || false;
+      document.getElementById('edit-body').value = localDraft.body || '';
+    } else {
+      document.getElementById('edit-title').value = post?.title || '';
+      document.getElementById('edit-date').value = post?.date || new Date().toISOString().split('T')[0];
+      document.getElementById('edit-tags').value = post?.tags?.join(', ') || '';
+      document.getElementById('edit-desc').value = post?.description || '';
+      document.getElementById('edit-draft').checked = post?.draft || false;
+      document.getElementById('edit-body').value = post?.body || '';
+    }
 
     resetTabLayout();
     showView(editorView);
     closePanel();
     document.body.style.overflow = 'hidden';
+    updateDraftStatus();
   }
 
   document.getElementById('editor-back').addEventListener('click', () => {
+    saveLocalDraft();
     document.body.style.overflow = '';
     resetTabLayout();
     editorView.classList.add('hidden');
@@ -589,10 +613,82 @@
     showView(listView);
   });
 
-  // 保存文章
-  document.getElementById('editor-save').addEventListener('click', async () => {
+  // === 草稿本地存储 ===
+  const DRAFT_KEY = 'blog_draft_';
+
+  function getDraftKey(filename) {
+    return filename ? DRAFT_KEY + filename : DRAFT_KEY + '__new__';
+  }
+
+  function saveLocalDraft() {
+    const title = document.getElementById('edit-title').value;
+    const date = document.getElementById('edit-date').value;
+    const tags = document.getElementById('edit-tags').value;
+    const description = document.getElementById('edit-desc').value;
+    const draft = document.getElementById('edit-draft').checked;
+    const body = document.getElementById('edit-body').value;
+    const key = getDraftKey(currentPost?.filename);
+    const data = { title, date, tags, description, draft, body, savedAt: new Date().toISOString() };
+    localStorage.setItem(key, JSON.stringify(data));
+    updateDraftStatus();
+  }
+
+  function loadLocalDraft(filename) {
+    const key = getDraftKey(filename);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+
+  function clearLocalDraft(filename) {
+    localStorage.removeItem(getDraftKey(filename));
+    updateDraftStatus();
+  }
+
+  function updateDraftStatus() {
+    const el = document.getElementById('draft-status');
+    if (!el) return;
+    const key = getDraftKey(currentPost?.filename);
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const d = JSON.parse(raw);
+        const time = new Date(d.savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        el.textContent = `本地草稿 · ${time}`;
+        el.classList.remove('hidden');
+      } catch { el.classList.add('hidden'); }
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  // 自动保存（输入停止 1 秒后保存）
+  let autoSaveTimer = null;
+  editBody.addEventListener('input', () => {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(saveLocalDraft, 1000);
+  });
+  ['edit-title', 'edit-date', 'edit-tags', 'edit-desc'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(saveLocalDraft, 1000);
+    });
+  });
+  document.getElementById('edit-draft').addEventListener('change', saveLocalDraft);
+
+  // 保存草稿（手动）
+  document.getElementById('editor-save').addEventListener('click', () => {
+    saveLocalDraft();
+    const btn = document.getElementById('editor-save');
+    btn.textContent = '已保存 ✓';
+    setTimeout(() => { btn.textContent = '保存草稿'; }, 1500);
+  });
+
+  // 发布到 GitHub
+  document.getElementById('editor-publish').addEventListener('click', async () => {
     const title = document.getElementById('edit-title').value.trim();
     if (!title) { alert('请输入标题'); return; }
+    if (!token) { alert('请先登录 GitHub'); return; }
 
     const date = document.getElementById('edit-date').value;
     const tags = document.getElementById('edit-tags').value.split(',').map((t) => t.trim()).filter(Boolean);
@@ -600,9 +696,9 @@
     const draft = document.getElementById('edit-draft').checked;
     const body = document.getElementById('edit-body').value;
 
-    const saveBtn = document.getElementById('editor-save');
-    saveBtn.textContent = '保存中...';
-    saveBtn.disabled = true;
+    const pubBtn = document.getElementById('editor-publish');
+    pubBtn.textContent = '发布中...';
+    pubBtn.disabled = true;
 
     try {
       if (currentPost) {
@@ -611,7 +707,9 @@
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...currentPost, title, date, tags, description, draft, body }),
         });
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) throw new Error('Publish failed');
+        const data = await res.json();
+        currentPost.sha = data.sha;
       } else {
         const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
         const filename = `${slug}.mdx`;
@@ -620,14 +718,18 @@
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename, title, date, tags, description, draft, body }),
         });
-        if (!res.ok) throw new Error('Save failed');
+        if (!res.ok) throw new Error('Publish failed');
+        const data = await res.json();
+        currentPost = { filename, sha: data.sha };
       }
-      alert('保存成功');
+      clearLocalDraft(currentPost?.filename);
+      pubBtn.textContent = '已发布 ✓';
+      setTimeout(() => { pubBtn.textContent = '发布'; }, 1500);
     } catch (err) {
-      alert('保存失败: ' + err.message);
+      alert('发布失败: ' + err.message);
     }
-    saveBtn.textContent = '保存';
-    saveBtn.disabled = false;
+    pubBtn.textContent = '发布';
+    pubBtn.disabled = false;
   });
 
   // 删除文章
@@ -643,6 +745,7 @@
         body: JSON.stringify({ filename: currentPost.filename, sha: currentPost.sha, title: currentPost.title }),
       });
       if (!res.ok) throw new Error('Delete failed');
+      clearLocalDraft(currentPost.filename);
       document.body.style.overflow = '';
       editorView.classList.add('hidden');
       editorView.classList.remove('flex');
