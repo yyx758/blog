@@ -580,10 +580,10 @@
         var dataUrl = reader.result;
         var base64 = String(dataUrl).split(',')[1];
 
-        var res = await fetch('/api/upload', {
+        var res = await fetch('/api/posts', {
           method: 'POST',
           headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: name, content: base64, mimeType: imgFile.type }),
+          body: JSON.stringify({ action: 'upload-image', filename: name, content: base64 }),
         });
 
         if (!res.ok) throw new Error('HTTP ' + res.status);

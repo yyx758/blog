@@ -122,6 +122,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'POST': {
+        // 图片上传
+        if (req.body.action === 'upload-image') {
+          const { filename: imgFilename, content: imgContent } = req.body;
+          if (!imgFilename || !imgContent) {
+            res.status(400).json({ error: '缺少文件名或内容' });
+            return;
+          }
+          const imgPath = `public/images/${imgFilename}`;
+          const imgResponse = await githubFetch(
+            `https://api.github.com/repos/${GITHUB_REPO}/contents/${imgPath}`,
+            token,
+            {
+              method: 'PUT',
+              body: JSON.stringify({
+                message: `上传图片: ${imgFilename}`,
+                content: imgContent,
+                branch: GITHUB_BRANCH,
+              }),
+            }
+          );
+          const imgData = await imgResponse.json();
+          if (imgResponse.ok) {
+            triggerRedeploy();
+            res.status(200).json({ success: true, path: `/images/${imgFilename}`, sha: imgData.content?.sha });
+          } else {
+            res.status(imgResponse.status).json({ error: imgData.message });
+          }
+          return;
+        }
+
+        // 文章上传
         const { filename, title, date, tags, description, draft, body } = req.body;
         if (!filename || !title) {
           res.status(400).json({ error: '缺少必填字段' });
