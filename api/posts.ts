@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GITHUB_REPO = 'yyx758/blog';
+const GITHUB_REPO = (process.env.GITHUB_REPO || 'yyx758/blog').trim();
 const GITHUB_BRANCH = 'main';
 const CONTENT_PATH = 'src/content/posts';
 
@@ -65,6 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const files = await response.json();
 
         if (!Array.isArray(files)) {
+          if (response.status === 404) {
+            res.status(200).json([]);
+            return;
+          }
           const errMsg = (files as any)?.message || 'Unknown error';
           res.status(response.status || 500).json({ error: `GitHub API: ${errMsg}` });
           return;
