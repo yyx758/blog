@@ -619,9 +619,9 @@
     var ext = (imgFile.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
     var name = 'paste-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8) + '.' + ext;
 
-    // 插入占位
+    // 插入文本占位，不提前请求最终图片地址，避免预览先缓存 404。
     var cursorPos = editBody.selectionStart;
-    var placeholder = '\n![上传中...](/api/posts?image=' + name + ')\n';
+    var placeholder = '\n[图片上传中: ' + name + ']\n';
     editBody.setRangeText(placeholder, cursorPos, cursorPos, 'end');
     editBody.dispatchEvent(new Event('input'));
 
@@ -649,7 +649,8 @@
         var val = editBody.value;
         var idx = val.indexOf(placeholder);
         if (idx !== -1) {
-          var realMd = '\n![' + name + '](' + result.path + ')\n';
+          var imagePath = result.path + (result.path.indexOf('?') === -1 ? '?' : '&') + 'v=' + encodeURIComponent(result.sha || Date.now());
+          var realMd = '\n![' + name + '](' + imagePath + ')\n';
           editBody.setRangeText(realMd, idx, idx + placeholder.length, 'end');
           editBody.dispatchEvent(new Event('input'));
         }

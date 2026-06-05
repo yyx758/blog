@@ -91,30 +91,50 @@ function getImageMime(filename: string) {
   return 'image/png';
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sendImageError(res: VercelResponse, status: number, error: string, detail?: string) {
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(status).json({ error, detail });
+}
+
 async function serveImage(filename: string, res: VercelResponse) {
   if (!isSafeImageName(filename)) {
-    res.status(400).json({ error: 'Invalid image filename' });
+    sendImageError(res, 400, 'Invalid image filename');
     return;
   }
 
   const imgPath = `public/images/${filename}`;
-  const imgResp = await githubFetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/contents/${imgPath}?ref=${GITHUB_BRANCH}`,
-    GITHUB_TOKEN
-  );
+  const imgUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${imgPath}?ref=${GITHUB_BRANCH}`;
+  let imgResp: Response | undefined;
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    imgResp = await githubFetch(imgUrl, GITHUB_TOKEN);
+    if (imgResp.ok || imgResp.status !== 404) break;
+    await sleep(250 * (attempt + 1));
+  }
+
+  if (!imgResp) {
+    sendImageError(res, 502, 'GitHub image fetch failed');
+    return;
+  }
 
   if (!imgResp.ok) {
     const detail = await imgResp.json().catch(() => ({}));
-    res.status(imgResp.status === 404 ? 404 : 502).json({
-      error: imgResp.status === 404 ? 'Image not found' : 'GitHub image fetch failed',
-      detail: detail.message,
-    });
+    sendImageError(
+      res,
+      imgResp?.status === 404 ? 404 : 502,
+      imgResp?.status === 404 ? 'Image not found' : 'GitHub image fetch failed',
+      detail.message
+    );
     return;
   }
 
   const imgData = await imgResp.json();
   if (typeof imgData.content !== 'string' || imgData.encoding !== 'base64') {
-    res.status(404).json({ error: 'Image data error' });
+    sendImageError(res, 404, 'Image data error');
     return;
   }
 
