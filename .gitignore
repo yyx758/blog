@@ -27,3 +27,5 @@ pnpm-debug.log*
 
 # tina generated
 admin/
+
+.env*
