@@ -529,6 +529,77 @@
     }
   });
 
+  // ==================== 粘贴图片 ====================
+
+  editBody.addEventListener('paste', async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles = [];
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+    if (imageFiles.length === 0) return;
+
+    e.preventDefault();
+
+    for (const file of imageFiles) {
+      const ext = file.type.split('/')[1] || 'png';
+      const name = `paste-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      // 插入占位符
+      const placeholder = `![上传中...](/${name})`;
+      const start = editBody.selectionStart;
+      editBody.setRangeText(placeholder, start, start, 'end');
+      editBody.dispatchEvent(new Event('input'));
+
+      try {
+        // base64 编码
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        // 上传到 GitHub
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: name, content: base64, mimeType: file.type }),
+        });
+
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+
+        // 替换占位符为真实路径
+        const currentVal = editBody.value;
+        const placeholderText = `![上传中...](/${name})`;
+        const idx = currentVal.indexOf(placeholderText);
+        if (idx !== -1) {
+          const realMarkdown = `![${name}](${data.path})`;
+          editBody.setRangeText(realMarkdown, idx, idx + placeholderText.length, 'end');
+          editBody.dispatchEvent(new Event('input'));
+        }
+      } catch (err) {
+        // 上传失败，移除占位符
+        const currentVal = editBody.value;
+        const placeholderText = `![上传中...](/${name})`;
+        const idx = currentVal.indexOf(placeholderText);
+        if (idx !== -1) {
+          editBody.setRangeText('', idx, idx + placeholderText.length, 'end');
+          editBody.dispatchEvent(new Event('input'));
+        }
+        alert('图片上传失败: ' + (err.message || err));
+      }
+    }
+  });
+
   // ==================== 面板 & 登录 ====================
 
   document.getElementById('admin-toggle').addEventListener('click', () => {
