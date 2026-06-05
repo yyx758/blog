@@ -531,65 +531,71 @@
 
   // ==================== 粘贴图片 ====================
 
-  editBody.addEventListener('paste', async function(e) {
+  editBody.addEventListener('paste', function(e) {
+    console.log('[paste] event fired', e);
     var cd = e.clipboardData || window.clipboardData;
-    if (!cd) return;
+    if (!cd) { console.log('[paste] no clipboardData'); return; }
 
-    // 尝试获取图片文件
+    console.log('[paste] items:', cd.items ? cd.items.length : 0, 'files:', cd.files ? cd.files.length : 0);
+
+    // 获取图片文件
     var imgFile = null;
 
     // 方法1: 从 items 获取
-    if (cd.items) {
+    if (cd.items && cd.items.length > 0) {
       for (var i = 0; i < cd.items.length; i++) {
         var item = cd.items[i];
-        if (item.kind === 'file' && item.type.startsWith('image/')) {
-          try { imgFile = item.getAsFile(); } catch(e) {}
+        console.log('[paste] item[' + i + ']:', item.kind, item.type);
+        if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+          try { imgFile = item.getAsFile(); } catch(ex) { console.log('[paste] getAsFile error:', ex); }
           if (imgFile) break;
         }
       }
     }
 
     // 方法2: 从 files 获取
-    if (!imgFile && cd.files) {
+    if (!imgFile && cd.files && cd.files.length > 0) {
       for (var i = 0; i < cd.files.length; i++) {
-        if (cd.files[i].type.startsWith('image/')) {
+        console.log('[paste] file[' + i + ']:', cd.files[i].type, cd.files[i].size);
+        if (cd.files[i].type && cd.files[i].type.startsWith('image/')) {
           imgFile = cd.files[i];
           break;
         }
       }
     }
 
-    if (!imgFile) return;
+    if (!imgFile) { console.log('[paste] no image found, letting browser handle'); return; }
 
+    console.log('[paste] image found:', imgFile.type, imgFile.size);
     e.preventDefault();
     e.stopPropagation();
 
     var ext = (imgFile.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
     var name = 'paste-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8) + '.' + ext;
 
-    // 先插入占位文字
+    // 插入占位
     var cursorPos = editBody.selectionStart;
-    var placeholder = '\n![' + name + '](/images/' + name + ')\n';
+    var placeholder = '\n![上传中...](/images/' + name + ')\n';
     editBody.setRangeText(placeholder, cursorPos, cursorPos, 'end');
     editBody.dispatchEvent(new Event('input'));
 
-    // 读取文件
+    // 读取并上传
     var reader = new FileReader();
-    reader.onload = async function() {
-      try {
-        var dataUrl = reader.result;
-        var base64 = String(dataUrl).split(',')[1];
+    reader.onload = function() {
+      var dataUrl = reader.result || '';
+      var base64 = String(dataUrl).split(',')[1] || '';
+      console.log('[paste] base64 length:', base64.length);
 
-        var res = await fetch('/api/posts', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'upload-image', filename: name, content: base64 }),
-        });
-
+      fetch('/api/posts', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'upload-image', filename: name, content: base64 }),
+      }).then(function(res) {
+        console.log('[paste] upload response:', res.status);
         if (!res.ok) throw new Error('HTTP ' + res.status);
-
-        var result = await res.json();
-        // 替换占位为实际路径
+        return res.json();
+      }).then(function(result) {
+        console.log('[paste] upload success:', result.path);
         var val = editBody.value;
         var idx = val.indexOf(placeholder);
         if (idx !== -1) {
@@ -597,16 +603,16 @@
           editBody.setRangeText(realMd, idx, idx + placeholder.length, 'end');
           editBody.dispatchEvent(new Event('input'));
         }
-      } catch(err) {
+      }).catch(function(err) {
+        console.error('[paste] upload failed:', err);
         alert('图片上传失败: ' + err.message);
-        // 移除占位
         var val = editBody.value;
         var idx = val.indexOf(placeholder);
         if (idx !== -1) {
           editBody.setRangeText('', idx, idx + placeholder.length, 'end');
           editBody.dispatchEvent(new Event('input'));
         }
-      }
+      });
     };
     reader.readAsDataURL(imgFile);
   });
@@ -738,6 +744,7 @@
     showView(editorView);
     closePanel();
     document.body.style.overflow = 'hidden';
+    setTimeout(function() { editBody.focus(); }, 100);
   }
 
   document.getElementById('editor-back').addEventListener('click', () => {
