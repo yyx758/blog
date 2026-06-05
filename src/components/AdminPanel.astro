@@ -73,6 +73,52 @@
   </div>
 </div>
 
+<!-- 上传表单弹窗 -->
+<div id="upload-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/40">
+  <div class="bg-bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+      <h3 class="text-base font-semibold">发布文章</h3>
+      <button id="upload-modal-close" class="p-1 text-text-secondary hover:text-primary transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="px-5 py-4 space-y-4">
+      <div>
+        <label class="block text-xs text-text-secondary mb-1">文件名</label>
+        <input id="upload-filename" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="my-post.mdx" />
+      </div>
+      <div>
+        <label class="block text-xs text-text-secondary mb-1">标题</label>
+        <input id="upload-title" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="文章标题" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-text-secondary mb-1">发布日期</label>
+          <input id="upload-date" type="date" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" />
+        </div>
+        <div>
+          <label class="block text-xs text-text-secondary mb-1">标签</label>
+          <input id="upload-tags" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="逗号分隔" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs text-text-secondary mb-1">描述</label>
+        <input id="upload-desc" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="一句话描述" />
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="upload-draft" type="checkbox" class="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+        <label for="upload-draft" class="text-sm text-text-secondary">设为草稿</label>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-bg-card">
+      <button id="upload-cancel" class="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+      <button id="upload-confirm" class="px-5 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors">发布</button>
+    </div>
+  </div>
+</div>
+
 <!-- 遮罩层 -->
 <div id="admin-overlay" class="fixed inset-0 bg-black/20 z-40 hidden transition-opacity"></div>
 
@@ -197,56 +243,113 @@
     });
   }
 
-  // 上传文章
+  // 上传文章 — 弹出表单
+  let pendingFile = null;
+  let pendingContent = '';
+
+  const uploadModal = document.getElementById('upload-modal');
+  const fmTitle = document.getElementById('upload-title');
+  const fmDate = document.getElementById('upload-date');
+  const fmTags = document.getElementById('upload-tags');
+  const fmDesc = document.getElementById('upload-desc');
+  const fmDraft = document.getElementById('upload-draft');
+  const fmFilename = document.getElementById('upload-filename');
+
+  document.getElementById('upload-modal-close').addEventListener('click', closeUploadModal);
+  document.getElementById('upload-cancel').addEventListener('click', closeUploadModal);
+
+  function closeUploadModal() {
+    uploadModal.classList.add('hidden');
+    uploadModal.classList.remove('flex');
+    pendingFile = null;
+    pendingContent = '';
+    document.getElementById('file-upload').value = '';
+  }
+
   document.getElementById('file-upload').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!token) { alert('请先登录 GitHub'); return; }
 
-    showLoading(true);
+    pendingFile = file;
+    pendingContent = await file.text();
+
+    // 解析 frontmatter 预填表单
+    let title = file.name.replace(/\.(md|mdx)$/, '');
+    let date = new Date().toISOString().split('T')[0];
+    let tags = '';
+    let description = '';
+    let draft = false;
+
+    const fmMatch = pendingContent.match(/^---\n([\s\S]*?)\n---\n/);
+    if (fmMatch) {
+      const fm = fmMatch[1];
+      const titleMatch = fm.match(/title:\s*"?([^"\n]+)"?/);
+      const dateMatch = fm.match(/date:\s*"?([^"\n]+)"?/);
+      const tagsMatch = fm.match(/tags:\s*\[([^\]]*)\]/);
+      const descMatch = fm.match(/description:\s*"?([^"\n]+)"?/);
+      const draftMatch = fm.match(/draft:\s*(true|false)/);
+      if (titleMatch) title = titleMatch[1].trim();
+      if (dateMatch) date = dateMatch[1].trim();
+      if (tagsMatch) tags = tagsMatch[1].split(',').map(t => t.trim().replace(/["']/g, '')).filter(Boolean).join(', ');
+      if (descMatch) description = descMatch[1].trim();
+      if (draftMatch) draft = draftMatch[1] === 'true';
+    }
+
+    const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
+    fmFilename.value = `${slug}.mdx`;
+    fmTitle.value = title;
+    fmDate.value = date;
+    fmTags.value = tags;
+    fmDesc.value = description;
+    fmDraft.checked = draft;
+
+    uploadModal.classList.remove('hidden');
+    uploadModal.classList.add('flex');
+    fmTitle.focus();
+  });
+
+  // 标题变化时同步文件名
+  fmTitle.addEventListener('input', () => {
+    const slug = fmTitle.value.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
+    if (slug) fmFilename.value = `${slug}.mdx`;
+  });
+
+  // 确认发布
+  document.getElementById('upload-confirm').addEventListener('click', async () => {
+    const title = fmTitle.value.trim();
+    if (!title) { alert('请输入标题'); return; }
+    if (!pendingContent) { alert('文件内容为空'); return; }
+
+    const filename = fmFilename.value.trim() || `${title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '')}.mdx`;
+    const date = fmDate.value;
+    const tags = fmTags.value.split(',').map(t => t.trim()).filter(Boolean);
+    const description = fmDesc.value.trim();
+    const draft = fmDraft.checked;
+
+    // 提取正文（去掉原 frontmatter）
+    let body = pendingContent;
+    const fmMatch = body.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
+    if (fmMatch) body = fmMatch[1];
+
+    const btn = document.getElementById('upload-confirm');
+    btn.textContent = '发布中...';
+    btn.disabled = true;
+
     try {
-      const content = await file.text();
-
-      // 解析 frontmatter
-      let title = file.name.replace(/\.(md|mdx)$/, '');
-      let date = new Date().toISOString().split('T')[0];
-      let tags = [];
-      let description = '';
-      let draft = false;
-      let body = content;
-
-      const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-      if (fmMatch) {
-        const fm = fmMatch[1];
-        body = fmMatch[2];
-        const titleMatch = fm.match(/title:\s*"?([^"\n]+)"?/);
-        const dateMatch = fm.match(/date:\s*"?([^"\n]+)"?/);
-        const tagsMatch = fm.match(/tags:\s*\[([^\]]*)\]/);
-        const descMatch = fm.match(/description:\s*"?([^"\n]+)"?/);
-        const draftMatch = fm.match(/draft:\s*(true|false)/);
-        if (titleMatch) title = titleMatch[1].trim();
-        if (dateMatch) date = dateMatch[1].trim();
-        if (tagsMatch) tags = tagsMatch[1].split(',').map(t => t.trim().replace(/["']/g, '')).filter(Boolean);
-        if (descMatch) description = descMatch[1].trim();
-        if (draftMatch) draft = draftMatch[1] === 'true';
-      }
-
-      const slug = title.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, '-').replace(/^-|-$/g, '');
-      const filename = `${slug}.mdx`;
-
       const res = await fetch('/api/posts', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename, title, date, tags, description, draft, body }),
       });
       if (!res.ok) throw new Error('Upload failed');
-
+      closeUploadModal();
       await loadPosts();
     } catch (err) {
-      alert('上传失败: ' + err.message);
+      alert('发布失败: ' + err.message);
     }
-    showLoading(false);
-    e.target.value = '';
+    btn.textContent = '发布';
+    btn.disabled = false;
   });
 })();
 </script>
