@@ -2,8 +2,9 @@
 const year = new Date().getFullYear();
 ---
 
-<footer class="border-t border-border mt-auto">
-  <div class="max-w-3xl mx-auto px-6 py-6 text-center text-sm text-text-secondary">
-    &copy; {year} 个人博客 · 基于 Astro 构建
+<footer class="border-t border-border mt-auto bg-bg-card/35">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-text-secondary">
+    <span>&copy; {year} 个人博客</span>
+    <span class="font-mono text-xs">Astro · Tailwind · MDX</span>
   </div>
 </footer>

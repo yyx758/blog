@@ -9,20 +9,21 @@ const navLinks = [
 const currentPath = Astro.url.pathname;
 ---
 
-<header class="border-b border-border bg-bg/80 backdrop-blur-md sticky top-0 z-50">
-  <nav class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-    <a href="/" class="text-lg font-bold tracking-tight hover:text-primary transition-colors">
-      我的博客
+<header class="sticky top-0 z-50 border-b border-border bg-bg/85 backdrop-blur-xl supports-[backdrop-filter]:bg-bg/70">
+  <nav class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <a href="/" class="group inline-flex items-center gap-2.5 text-sm font-semibold tracking-tight hover:text-primary transition-colors">
+      <span class="grid size-7 place-items-center rounded-md border border-border bg-bg-card text-[11px] font-mono text-primary shadow-sm group-hover:border-primary/40 transition-colors">Y</span>
+      <span class="hidden sm:inline">我的博客</span>
     </a>
-    <div class="flex items-center gap-5">
-      <ul class="flex gap-5 text-sm">
+    <div class="flex items-center gap-2 sm:gap-4">
+      <ul class="flex items-center gap-0.5 rounded-full border border-border bg-bg-card/70 p-1 text-xs shadow-sm sm:gap-1 sm:text-sm">
         {navLinks.map(({ href, label }) => (
           <li>
             <a
               href={href}
               class:list={[
-                'transition-colors hover:text-primary',
-                { 'text-primary font-medium': currentPath === href || (href !== '/' && currentPath.startsWith(href)) },
+                'inline-flex h-8 items-center rounded-full px-2.5 transition-colors hover:text-text sm:px-3',
+                { 'bg-text text-bg-card font-medium shadow-sm hover:text-bg-card': currentPath === href || (href !== '/' && currentPath.startsWith(href)) },
                 { 'text-text-secondary': !(currentPath === href || (href !== '/' && currentPath.startsWith(href))) },
               ]}
             >
@@ -31,7 +32,7 @@ const currentPath = Astro.url.pathname;
           </li>
         ))}
       </ul>
-      <button id="theme-toggle" class="text-text-secondary hover:text-primary transition-colors" title="切换主题">
+      <button id="theme-toggle" class="grid size-9 place-items-center rounded-full border border-border bg-bg-card/70 text-text-secondary shadow-sm transition-all hover:-translate-y-0.5 hover:text-primary" title="切换主题">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 dark:hidden">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>

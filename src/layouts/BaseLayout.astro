@@ -12,8 +12,8 @@ interface Props {
 
 const { title, description = '记录学习、分享技术、复盘项目的个人博客', wide = false } = Astro.props;
 const mainClass = wide
-  ? 'flex-1 w-full max-w-6xl mx-auto px-6 py-12'
-  : 'flex-1 w-full max-w-3xl mx-auto px-6 py-12';
+  ? 'flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10'
+  : 'flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10';
 ---
 
 <!doctype html>
@@ -25,7 +25,7 @@ const mainClass = wide
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | 个人博客</title>
   </head>
-  <body class="min-h-screen flex flex-col">
+  <body class="min-h-screen flex flex-col text-text">
     <Header />
     <main class={mainClass}>
       <slot />
@@ -35,7 +35,7 @@ const mainClass = wide
 
     <button
       id="back-to-top"
-      class="fixed bottom-8 right-8 p-3 bg-primary text-white rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 hover:bg-primary-light z-50"
+      class="fixed bottom-6 right-6 p-2.5 bg-text text-bg-card border border-border rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary z-50"
       title="回到顶部"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
