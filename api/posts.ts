@@ -1,19 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const GITHUB_REPO = process.env.GITHUB_REPO || 'yyx758/blog';
+const GITHUB_REPO = (process.env.GITHUB_REPO || 'yyx758/blog').trim();
 const GITHUB_BRANCH = 'main';
 const CONTENT_PATH = 'src/content/posts';
 
 async function githubFetch(url: string, token: string, options?: RequestInit) {
-  return fetch(url, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function getFileContent(data: Record<string, unknown>) {
@@ -53,13 +60,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     switch (method) {
       case 'GET': {
-        // List all posts
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}?ref=${GITHUB_BRANCH}`;
         const response = await githubFetch(url, token);
         const files = await response.json();
 
         if (!Array.isArray(files)) {
-          res.status(500).json({ error: 'Failed to list files' });
+          const errMsg = (files as any)?.message || 'Unknown error';
+          res.status(response.status || 500).json({ error: `GitHub API: ${errMsg}` });
           return;
         }
 
@@ -70,7 +77,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const contentData = await contentRes.json();
           const content = getFileContent(contentData);
 
-          // Parse frontmatter
           const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
           if (!fmMatch) continue;
 
@@ -103,7 +109,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'POST': {
-        // Create new post
         const { filename, title, date, tags, description, draft, body } = req.body;
         if (!filename || !title) {
           res.status(400).json({ error: '缺少必填字段' });
@@ -137,7 +142,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'PUT': {
-        // Edit post
         const { filename: editFilename, sha, title: editTitle, date: editDate, tags: editTags, description: editDesc, draft: editDraft, body: editBody } = req.body;
         if (!editFilename || !sha) {
           res.status(400).json({ error: '缺少必填字段' });
@@ -172,7 +176,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'DELETE': {
-        // Delete post
         const { filename: delFilename, sha: delSha, title: delTitle } = req.body;
         if (!delFilename || !delSha) {
           res.status(400).json({ error: '缺少必填字段' });
@@ -201,7 +204,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       default:
         res.status(405).json({ error: 'Method not allowed' });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: any) {
+    const msg = error.name === 'AbortError' ? 'GitHub API 请求超时' : error.message;
+    res.status(500).json({ error: msg });
   }
 }
