@@ -35,6 +35,15 @@ function getFileContent(data: Record<string, unknown>) {
   return '';
 }
 
+async function triggerRedeploy() {
+  const hookUrl = process.env.DEPLOY_HOOK_URL?.trim();
+  if (hookUrl) {
+    try {
+      await fetch(hookUrl, { method: 'POST' });
+    } catch {}
+  }
+}
+
 function buildFrontmatter(post: Record<string, unknown>) {
   const lines = ['---'];
   lines.push(`title: "${post.title}"`);
@@ -138,6 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const data = await response.json();
         if (response.ok) {
+          triggerRedeploy();
           res.status(200).json({ success: true, sha: data.content?.sha });
         } else {
           res.status(response.status).json({ error: data.message });
@@ -172,6 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const editData = await editResponse.json();
         if (editResponse.ok) {
+          triggerRedeploy();
           res.status(200).json({ success: true, sha: editData.content?.sha });
         } else {
           res.status(editResponse.status).json({ error: editData.message });
@@ -197,6 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         if (delResponse.ok) {
+          triggerRedeploy();
           res.status(200).json({ success: true });
         } else {
           const delData = await delResponse.json();
