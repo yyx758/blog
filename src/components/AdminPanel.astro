@@ -61,7 +61,7 @@
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           上传文件
-          <input id="file-upload" type="file" accept=".md,.mdx" class="hidden" />
+        <input id="file-upload" type="file" accept=".md,.mdx" class="hidden" />
         </label>
         <button
           id="new-post-btn"
@@ -212,7 +212,7 @@
     <div class="px-5 py-4 space-y-4">
       <div>
         <label class="block text-xs text-text-secondary mb-1">文件名</label>
-        <input id="upload-filename" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="my-post.mdx" />
+        <input id="upload-filename" type="text" class="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors" placeholder="my-post.md" />
       </div>
       <div>
         <label class="block text-xs text-text-secondary mb-1">标题</label>
@@ -843,9 +843,10 @@
         if (!res.ok) throw new Error('Save failed');
         const data = await res.json();
         currentPost.sha = data.sha;
+        if (data.filename) currentPost.filename = data.filename;
       } else {
         const slug = makeSlug(title);
-        const filename = `${slug}.mdx`;
+        const filename = `${slug}.md`;
         const res = await fetch('/api/posts', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -853,7 +854,7 @@
         });
         if (!res.ok) throw new Error('Save failed');
         const data = await res.json();
-        currentPost = { filename, sha: data.sha };
+        currentPost = { filename: data.filename || filename, sha: data.sha };
         editorTitle.textContent = '编辑文章';
         document.getElementById('editor-delete').classList.remove('hidden');
       }
@@ -935,7 +936,7 @@
     }
 
     const slug = makeSlug(title);
-    document.getElementById('upload-filename').value = `${slug}.mdx`;
+    document.getElementById('upload-filename').value = `${slug}.md`;
     document.getElementById('upload-title').value = title;
     document.getElementById('upload-date').value = date;
     document.getElementById('upload-tags').value = tags;
@@ -949,7 +950,7 @@
 
   document.getElementById('upload-title').addEventListener('input', (e) => {
     const slug = makeSlug(e.target.value);
-    if (slug) document.getElementById('upload-filename').value = `${slug}.mdx`;
+    if (slug) document.getElementById('upload-filename').value = `${slug}.md`;
   });
 
   document.getElementById('upload-confirm').addEventListener('click', async () => {
@@ -957,7 +958,7 @@
     if (!title) { alert('请输入标题'); return; }
     if (!pendingContent) { alert('文件内容为空'); return; }
 
-    const filename = document.getElementById('upload-filename').value.trim() || `${makeSlug(title)}.mdx`;
+    const filename = document.getElementById('upload-filename').value.trim() || `${makeSlug(title)}.md`;
     const date = document.getElementById('upload-date').value;
     const tags = document.getElementById('upload-tags').value.split(',').map(t => t.trim()).filter(Boolean);
     const description = document.getElementById('upload-desc').value.trim();

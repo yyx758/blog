@@ -119,6 +119,10 @@ function isSafePostFilename(filename: unknown) {
   );
 }
 
+function toMarkdownFilename(filename: string) {
+  return filename.replace(/\.(md|mdx)$/i, '.md');
+}
+
 function getImageMime(filename: string) {
   const ext = filename.split('.').pop()?.toLowerCase();
   if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
@@ -215,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const posts = [];
         for (const file of files) {
-          if (!file.name.endsWith('.md') && !file.name.endsWith('.mdx')) continue;
+          if (!file.name.endsWith('.md')) continue;
           const contentRes = await githubFetch(file.url, token);
           const contentData = await contentRes.json();
           const content = getFileContent(contentData);
@@ -289,10 +293,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
+        const postFilename = toMarkdownFilename(filename);
         const content = buildFrontmatter({ title, date, tags, description, draft }) + '\n\n' + sanitizeMdxBody(body);
         const encoded = encodeContent(content);
 
-        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${filename}`;
+        const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${postFilename}`;
         const response = await githubFetch(url, token, {
           method: 'PUT',
           body: JSON.stringify({
@@ -305,7 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const data = await response.json();
         if (response.ok) {
           triggerRedeploy();
-          res.status(200).json({ success: true, sha: data.content?.sha });
+          res.status(200).json({ success: true, sha: data.content?.sha, filename: postFilename });
         } else {
           res.status(response.status).json({ error: data.message });
         }
@@ -319,10 +324,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
+        const editPostFilename = toMarkdownFilename(editFilename);
         const editContent = buildFrontmatter({ title: editTitle, date: editDate, tags: editTags, description: editDesc, draft: editDraft }) + '\n\n' + sanitizeMdxBody(editBody);
         const editEncoded = encodeContent(editContent);
 
-        const editUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${editFilename}`;
+        const editUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${editPostFilename}`;
         const editResponse = await githubFetch(editUrl, token, {
           method: 'PUT',
           body: JSON.stringify({
@@ -336,7 +342,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const editData = await editResponse.json();
         if (editResponse.ok) {
           triggerRedeploy();
-          res.status(200).json({ success: true, sha: editData.content?.sha });
+          res.status(200).json({ success: true, sha: editData.content?.sha, filename: editPostFilename });
         } else {
           res.status(editResponse.status).json({ error: editData.message });
         }
