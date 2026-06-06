@@ -64,6 +64,43 @@ function buildFrontmatter(post: Record<string, unknown>) {
   return lines.join('\n');
 }
 
+function escapeMdxJsxText(value: string) {
+  return value
+    .split(/(`[^`\n]*`)/g)
+    .map((part) => {
+      if (part.startsWith('`') && part.endsWith('`')) return part;
+      return part.replace(/<\/?[A-Z][A-Za-z0-9_.-]*(?:\s[^>\n]*)?>/g, (match) =>
+        match.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      );
+    })
+    .join('');
+}
+
+function sanitizeMdxBody(body: unknown) {
+  const lines = String(body || '').split('\n');
+  let inFence = false;
+  let fenceMarker = '';
+
+  return lines
+    .map((line) => {
+      const fenceMatch = line.match(/^\s*(```+|~~~+)/);
+      if (fenceMatch) {
+        const marker = fenceMatch[1][0];
+        if (!inFence) {
+          inFence = true;
+          fenceMarker = marker;
+        } else if (marker === fenceMarker) {
+          inFence = false;
+          fenceMarker = '';
+        }
+        return line;
+      }
+
+      return inFence ? line : escapeMdxJsxText(line);
+    })
+    .join('\n');
+}
+
 function getQueryString(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -252,7 +289,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        const content = buildFrontmatter({ title, date, tags, description, draft }) + '\n\n' + (body || '');
+        const content = buildFrontmatter({ title, date, tags, description, draft }) + '\n\n' + sanitizeMdxBody(body);
         const encoded = encodeContent(content);
 
         const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${filename}`;
@@ -282,7 +319,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        const editContent = buildFrontmatter({ title: editTitle, date: editDate, tags: editTags, description: editDesc, draft: editDraft }) + '\n\n' + (editBody || '');
+        const editContent = buildFrontmatter({ title: editTitle, date: editDate, tags: editTags, description: editDesc, draft: editDraft }) + '\n\n' + sanitizeMdxBody(editBody);
         const editEncoded = encodeContent(editContent);
 
         const editUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${CONTENT_PATH}/${editFilename}`;

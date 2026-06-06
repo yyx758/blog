@@ -319,10 +319,9 @@ Spring AI 官方 API 里说它是用于存储和检索 chat messages 的 reposit
 会话历史与会话记忆是两个不同的事情：
 - 会话记忆：是指让大模型记住每一轮对话的内容，不至于前一句刚问完，下一句就忘了。
 - 会话历史：是指要记录总共有多少不同的对话
--
-在ChatMemory中，会记录一个会话中的所有消息，记录方式是**以conversationId为key，以List<Message>为value**，根据这些历史消息，大模型就能继续回答问题，这就是所谓的会话记忆。
+在ChatMemory中，会记录一个会话中的所有消息，记录方式是**以`conversationId`为key，以`List<Message>`为value**，根据这些历史消息，大模型就能继续回答问题，这就是所谓的会话记忆。
 
-而会话历史，就是每一个会话的conversationId，将来根据conversationId再去查询List<Message>
+而会话历史，就是每一个会话的`conversationId`，将来根据`conversationId`再去查询`List<Message>`
 
 在接下来业务中，我们以chatId来代指conversationId.
 
@@ -462,8 +461,6 @@ public class ChatHistoryController {
     }
 }
 ```
-
-
 
 
 
