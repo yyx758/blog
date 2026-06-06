@@ -75,8 +75,70 @@ const mainClass = wide
         textarea.remove();
       };
 
+      const escapeCodeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      const fallbackHighlight = (code) => {
+        if (!code.textContent?.trim() || code.classList.contains('is-fallback-highlighted')) return;
+
+        const tokens = [];
+        const stash = (className) => (match) => {
+          const placeholder = String.fromCharCode(0xe000 + tokens.length);
+          tokens.push(`<span class="${className}">${match}</span>`);
+          return placeholder;
+        };
+
+        let html = escapeCodeHtml(code.textContent)
+          .replace(/(&quot;.*?&quot;|&#39;.*?&#39;|".*?"|'.*?'|`.*?`|“.*?”|‘.*?’)/g, stash('hljs-string'))
+          .replace(/(^|\s)(#.*$|\/\/.*$)/gm, (_, prefix, comment) => `${prefix}${stash('hljs-comment')(comment)}`)
+          .replace(/\b(import|from|class|def|return|if|elif|else|for|while|try|except|with|as|in|is|not|and|or|None|True|False|const|let|var|function|new|await|async|public|private|protected|static|void|int|long|float|double|boolean|String|interface|extends|implements|package)\b/g, '<span class="hljs-keyword">$1</span>')
+          .replace(/\b(console|print|len|range|dict|list|set|OpenAI|JSON|Promise|fetch|Math|Date)\b/g, '<span class="hljs-built_in">$1</span>')
+          .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="hljs-number">$1</span>');
+
+        tokens.forEach((token, index) => {
+          html = html.replaceAll(String.fromCharCode(0xe000 + index), token);
+        });
+
+        code.innerHTML = html;
+        code.classList.add('hljs', 'is-fallback-highlighted');
+      };
+
+      const highlightCode = (code) => {
+        if (
+          !code ||
+          code.classList.contains('hljs') ||
+          code.querySelector('[style*="--shiki-light"]')
+        ) {
+          return;
+        }
+
+        try {
+          if (typeof hljs !== 'undefined') {
+            const languageClass = [...code.classList].find((className) => className.startsWith('language-'));
+            if (languageClass) {
+              hljs.highlightElement(code);
+            } else {
+              const result = hljs.highlightAuto(code.textContent || '');
+              code.innerHTML = result.value;
+              code.classList.add('hljs');
+              if (result.language) code.classList.add(`language-${result.language}`);
+            }
+            if (!code.querySelector('span[class*="hljs-"]')) fallbackHighlight(code);
+          } else {
+            fallbackHighlight(code);
+          }
+        } catch {
+          fallbackHighlight(code);
+        }
+      };
+
       window.enhanceCodeBlocks = (root = document) => {
         root.querySelectorAll('.prose pre').forEach((pre) => {
+          const code = pre.querySelector('code');
+          highlightCode(code);
+
           if (pre.parentElement?.classList.contains('code-block')) return;
 
           const wrapper = document.createElement('div');
@@ -111,6 +173,7 @@ const mainClass = wide
       };
 
       window.enhanceCodeBlocks();
+      window.addEventListener('load', () => window.enhanceCodeBlocks());
     </script>
   </body>
 </html>
