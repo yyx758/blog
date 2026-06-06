@@ -278,7 +278,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           );
           const imgData = await imgResponse.json();
           if (imgResponse.ok) {
-            triggerRedeploy();
             res.status(200).json({ success: true, path: `/api/posts?image=${encodeURIComponent(imgFilename)}`, sha: imgData.content?.sha });
           } else {
             res.status(imgResponse.status).json({ error: imgData.message });
@@ -309,7 +308,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const data = await response.json();
         if (response.ok) {
-          triggerRedeploy();
+          if (!draft) triggerRedeploy();
           res.status(200).json({ success: true, sha: data.content?.sha, filename: postFilename });
         } else {
           res.status(response.status).json({ error: data.message });
@@ -341,7 +340,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const editData = await editResponse.json();
         if (editResponse.ok) {
-          triggerRedeploy();
+          if (!editDraft) triggerRedeploy();
           res.status(200).json({ success: true, sha: editData.content?.sha, filename: editPostFilename });
         } else {
           res.status(editResponse.status).json({ error: editData.message });
