@@ -1,10 +1,11 @@
 ---
-title: "SpringAi学习记录"
+title: "SpringAi入门学习记录"
 date: 2026-06-05
 tags: ["Spring AI", "大模型", "Transformer"]
 description: "从人工智能发展脉络到 Transformer 与大模型基础原理的学习记录。"
 draft: true
 ---
+
 
 
 ## 1.人工智能发展
@@ -100,6 +101,129 @@ print(response.choices[0].message.content)
 - 自注意力机制：负责在这些历史对话里找相关信息
 
 如果我们不传入message数组,大模型自然也无法用自注意力机制获取上下文
+
+## 4.对话机器人实战
+
+### 4.1引入依赖
+
+Anthropic:
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
+</dependency>
+```
+
+OpenAI:
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+</dependency>
+```
+
+
+
+### 4.2配置文件设计模型
+我这里接的是deepseek,但是大多模型都是openai兼容的.直接按照spring ai标准来写配置文件
+
+```yml
+spring:
+  application:
+    name: springai-demo
+  ai:
+    openai:
+      api-key: ${DEEPSEEK_API_KEY} //密钥建议在环境中配置不要暴露
+      base-url: https://api.deepseek.com //这是deepseek官方的接口文档,明确写了,使用其他模型也可以去其他官网查询
+      timeout: 30s//这是最长响应时间,超时就回请求超时
+      chat:
+        options:
+          model: deepseek-v4-flash //模型名
+          temperature: 0.7 //随机性，越高越发散，越低越稳定
+          max-tokens: 2048 //最多生成token数
+```
+
+### 4.3 ChatClient
+这是重点,**ChatClient中封装了与AI大模型对话的各种API，同时支持同步式或响应式交互。**
+
+不过注意，在使用之前，首先我们需要声明一个ChatClient。
+```java
+@Configuration
+public class commonConfig {
+    @Bean
+    public ChatClient chatClient(OpenAiChatModel model){
+        return ChatClient.builder(model).build();   //ChatClient.builder：会得到一个ChatClient.Builder工厂对象，利用它可以自由选择模型、添加各种自定义配置
+    }
+}
+```
+可以创建一个config包下的commonConfig,来注册一个bean,之后用到是可以通过Spring来自动注入,所以**一定要加上@Bean注解,否则不会被spring容器管理**
+
+### 4.4 同步调用call
+```java
+@RestController
+public class chatController {
+
+      public final ChatClient chatClient;//推荐通过构造器
+
+      public chatController(ChatClient chatClient){
+          this.chatClient=chatClient;
+      }
+
+    @GetMapping("/chat")
+    public String chat(@RequestParam String prompt){
+        return  chatClient.prompt(prompt) //传入user提示词
+                  .call() //同步调用,等大模型全部生成完之后才返回消息
+                  .content();//返回响应内容
+    }
+}
+```
+
+### 4.5 流式调用Stream
+- 同步调用需要等待很长时间页面才能看到结果，用户体验不好。为了解决这个问题，我们可以改进调用方式为流式调用。
+在SpringAI中使用了WebFlux技术实现流式调用。注意流式调用另外需要设定响应类型和编码，不然前端会乱码
+- produces 的意思是：这个接口返回给浏览器/客户端的数据类型是什么。
+- 也就是响应头里会带上类似：Content-Type: text/html;charset=UTF-8
+```java
+// 注意看返回值，是Flux<String>，也就是流式结果，另外需要设定响应类型和编码，不然前端会乱码
+@GetMapping(value = "/chat/stream", produces = "text/html;charset=UTF-8")
+    public Flux<String> chatbystream(@RequestParam String prompt) {
+        return chatClient
+                .prompt(prompt)
+                .stream() // 流式调用
+                .content();
+    }
+```
+
+![paste-1780727678174-cdxnu9.png](/api/posts?image=paste-1780727678174-cdxnu9.png&v=a7897485d7c9f24f68e2df064409ffa7c529a6d2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
