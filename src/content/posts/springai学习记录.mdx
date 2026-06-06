@@ -3,11 +3,8 @@ title: "SpringAi学习记录"
 date: 2026-06-05
 tags: ["Spring AI", "大模型", "Transformer"]
 description: "从人工智能发展脉络到 Transformer 与大模型基础原理的学习记录。"
-draft: false
+draft: true
 ---
-
-
-
 
 ## 1.人工智能发展
 **AI，人工智能（Artificial Intelligence），指使机器能够像人类一样思考、学习和解决问题的技术。**
@@ -40,3 +37,69 @@ AI发展至今大概可以分为三个阶段：
 **chatgpt的解释是:**
 
 Transformer 强在它不像传统模型那样“一个词一个词慢慢记”，而是让每个词都能直接和所有词建立联系，并且这个结构特别适合大规模训练。规模一上去，它就能学到非常复杂的语言、知识和推理模式。
+
+
+## 3.调用大模型
+
+大模型开发并不是在浏览器中跟AI聊天。而是通过访问模型对外暴露的API接口，实现与大模型的交互。
+
+### 3.1大模型的接口规范
+```python
+# Please install OpenAI SDK first: `pip3 install openai`
+
+from openai import OpenAI
+
+# 1.初始化OpenAI客户端，要指定两个参数：api_key、base_url
+client = OpenAI(api_key="<DeepSeek API Key>", base_url="https://api.deepseek.com")
+
+# 2.发送http请求到大模型，参数比较多
+response = client.chat.completions.create(
+    model="deepseek-chat", # 2.1.选择要访问的模型
+    messages=[ # 2.2.发送给大模型的消息
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": "Hello"},
+    ],
+    stream=False # 2.3.是否以流式返回结果
+)
+
+print(response.choices[0].message.content)
+
+```
+
+### 3.2 接口说明
+- 请求方式：通常是**POST**，因为要传递JSON风格的参数
+- 请求路径：与平台有关
+  - openai: https://api.openai.com/v1
+  - anthropic:  https://api.anthropic.com
+  - DeepSeek官方平台：https://api.deepseek.com
+  - 阿里云百炼平台：https://dashscope.aliyuncs.com/compatible-mode/v1
+  - 本地ollama部署的模型：http://localhost:11434
+- 安全校验：开放平台都需要提供API_KEY来校验权限，本地ollama则不需要
+- 请求参数：参数很多，比较常见的有：
+  - model：要访问的模型名称
+  - **messages：发送给大模型的消息，是一个数组**
+  - stream：true，代表响应结果流式返回；false，代表响应结果一次性返回，但需要等待
+  - temperature：取值范围[0:2)，代表大模型生成结果的随机性，越小随机性越低。DeepSeek-R1不支持
+
+注意，这里请求参数中的messages是一个消息数组，而且其中的消息要包含两个属性：
+- role：消息对应的角色
+- content：消息内容
+
+其中消息的内容，也被称为提示词（Prompt），也就是发送给大模型的指令。
+
+### 3.3提示词角色
+
+![paste-1780718334380-eode6b.png](/api/posts?image=paste-1780718334380-eode6b.png&v=1c5c5f3a5f43d063c0ce133319505d82269e62b3)
+
+### 3.4 会话记忆问题
+> 我们为什么要把历史消息都放入Messages中，形成一个数组呢？这是一个重点
+
+- 我认为很好的解释是大模型没有跨请求的自动记忆。每次 API 调用默认是独立的，只有你在本次请求中传入的 messages，模型才能基于这些上下文进行回答。
+- messages 数组：负责把历史对话重新塞进本次请求
+- 自注意力机制：负责在这些历史对话里找相关信息
+
+如果我们不传入message数组,大模型自然也无法用自注意力机制获取上下文
+
+
+
+
