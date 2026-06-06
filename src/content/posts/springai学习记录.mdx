@@ -1,10 +1,10 @@
 ---
-title: "黑马SpringAi入门学习记录"
+title: "SpringAi1.0.0入门学习记录"
 date: 2026-06-05
-tags: ["Spring AI", "大模型", "Transformer"]
+tags: ["Spring AI"]
 description: "从人工智能发展脉络到 Transformer 与大模型基础原理的学习记录。"
-draft: true
 ---
+
 
 
 
@@ -105,6 +105,7 @@ print(response.choices[0].message.content)
 ## 4.对话机器人实战
 
 ### 4.1引入依赖
+1.0.0之前:
 
 Anthropic:
 ```xml
@@ -119,10 +120,16 @@ OpenAI:
 <dependency>
     <groupId>org.springframework.ai</groupId>
     <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-</dependency>
+ </dependency>
 ```
-
-
+1.1.0开始
+```xml
+  <dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-model-openai</artifactId>
+  </dependency>
+```
+我下面就用1.0.0的正式版
 
 ### 4.2配置文件设计模型
 我这里接的是deepseek,但是大多模型都是openai兼容的.直接按照spring ai标准来写配置文件
@@ -245,17 +252,203 @@ logging:
 ## 6.前端对接(省略)
 **主要就是解决CORS问题**
 
+## 7 会话记忆功能
+现在，我们的AI聊天机器人是没有记忆功能的，上一次聊天的内容，下一次就忘掉了。
+
+![paste-1780730613889-68r1o8.png](/api/posts?image=paste-1780730613889-68r1o8.png&v=ebb01cc7814a4de2d8028f1fa4120aee0b578fe8)
+**这是由于大模型 API 默认是无状态的，要实现会话记忆，应用程序需要保存历史对话，并在下一次请求时把相关历史消息作为上下文一起发送给模型。Spring AI 的 Chat Memory 可以帮我们自动完成历史消息的保存、读取和上下文注入。**
+
+### 7.1 ChatMemory
+新版本 Spring AI 的 Chat Memory 重点不是 InMemoryChatMemory 了,而是下面这套:
+- MessageWindowChatMemory：负责管理记忆窗口
+- ChatMemoryRepository：负责真正存储消息
+
+Spring AI 官方文档里说，MessageWindowChatMemory 会维护一个消息窗口，默认最多保留 20 条消息，超过后会移除较早的消息，但会保留 system message
+
+Spring提供了一个MessageChatMemoryAdvisor的通知，我们需要像之前添加日志通知一样添加到ChatClient,这就相当于开启了上下文功能。
+
+### 7.2 MessageWindowChatMemory 是什么？**它是现在常用的 ChatMemory 实现**
+
+拆开来看:
+
+- Message       消息
+
+- Window        窗口
+
+- ChatMemory    聊天记忆
+
+意思是只保留最近一段对话历史，而不是无限保存所有历史。
+
+### 7.3 ChatMemoryRepository 是什么？**ChatMemoryRepository 是真正存聊天记录的地方**。
+
+Spring AI 官方 API 里说它是用于存储和检索 chat messages 的 repository。
+
+### 7.4 具体实现
+> 新版本 Spring AI 默认有内存版 ChatMemory；你可以不自己配。但要让会话记忆真正生效，仍然需要给 ChatClient 加 MessageChatMemoryAdvisor，并在请求时传入 conversationId,要是想自己控制最近保留几条消息,就要自己写ChatMemory
+
+我这里自己编写:
+```java
+@Bean
+    public ChatMemory chatMemory(ChatMemoryRepository chatMemoryRepository) {
+        return MessageWindowChatMemory.builder()
+                .chatMemoryRepository(chatMemoryRepository)
+                .maxMessages(10)-
+                .build();
+    }
+
+@Bean
+    public ChatClient chatClient(OpenAiChatModel model,ChatMemory chatMemory){
+        return ChatClient.builder(model)
+                .defaultAdvisors(new SimpleLoggerAdvisor()) // 添加默认的Advisor,记录日志
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();   //ChatClient.builder：会得到一个ChatClient.Builder工厂对象，利用它可以自由选择模型、添加各种自定义配置
+    }
+```
+我来讲讲我理解他们之间的关系:
+- ChatClient是Spring ai封装的用来调用大模型的,是最顶层的,他可以使用工厂build出来,中间可以加入模型的选择,注意默认是没有记忆的,可以手动传入MessageChatMemoryAdvisor
+- 然后MessageChatMemoryAdvisor又是依赖于ChatMemory的,需要在builder()的时候传入,默认会有ChatMemory,但是想要自己调参数,就得自己编写一个bean
+- 然后chatMemoory里又分上面讲的两部分,一个是MessageWindowChatMemory：负责管理记忆窗口; 一个是ChatMemoryRepository：负责真正存储消息
+- chatMemoory由MessageWindowChatMemory build出来,MessageWindowChatMemory又依赖于chatMemoryRepository(chatMemoryRepository)
 
 
+![paste-1780734400530-y1shhk.png](/api/posts?image=paste-1780734400530-y1shhk.png&v=05da85dc5ce6843e5bedf98e1aaa69b517f92415)
+**现在就有了上下文记忆功能**
+
+## 8.1 会话历史
+会话历史与会话记忆是两个不同的事情：
+- 会话记忆：是指让大模型记住每一轮对话的内容，不至于前一句刚问完，下一句就忘了。
+- 会话历史：是指要记录总共有多少不同的对话
+-
+在ChatMemory中，会记录一个会话中的所有消息，记录方式是**以conversationId为key，以List<Message>为value**，根据这些历史消息，大模型就能继续回答问题，这就是所谓的会话记忆。
+
+而会话历史，就是每一个会话的conversationId，将来根据conversationId再去查询List<Message>
+
+在接下来业务中，我们以chatId来代指conversationId.
+
+### 8.2 管理会话历史
+由于会话记忆是以conversationId来管理的，也就是会话id（以后简称为chatId）。将来要查询会话历史，其实就是查询历史中有哪些chatId.
+因此，为了实现查询会话历史记录，我们必须记录所有的chatId，我们需要定义一个管理会话历史的标准接口。
+
+```java
+public interface ChatHistoryRepository {
+
+    /**
+     * 保存会话ID
+     * @param type 业务类型，比如 chat、service、pdf
+     * @param chatId 会话ID
+     */
+    void save(String type, String chatId);
+
+    /**
+     * 根据业务类型查询会话ID列表
+     * @param type 业务类型
+     * @return chatId列表
+     */
+    List<String> getChatIds(String type);
+}
+```
+
+然后定义一个实现类MemoryChatHistoryRepository
+```java
+@Component
+public class MemoryChatHistoryRepository implements ChatHistoryRepository{
+    private final Map<String, List<String>> chatHistory = new ConcurrentHashMap<>();
+
+    @Override
+    public void save(String type, String chatId) {
+        List<String> chatIds = chatHistory.computeIfAbsent(type, key -> new ArrayList<>());
+
+        if (!chatIds.contains(chatId)) {
+            chatIds.add(chatId);
+        }
+    }
+
+    @Override
+    public List<String> getChatIds(String type) {
+        return chatHistory.getOrDefault(type, List.of());
+    }
+}
+```
+> 目前我们业务比较简单，没有用户概念，但是将来会有不同业务，因此简单采用内存保存type与chatId关系。
+
+### 8.3 保存会话id
+```java
+@RequiredArgsConstructor
+@RestController
+public class chatController {
+
+      public final ChatClient chatClient;
+      private final ChatHistoryRepository chatHistoryRepository;
 
 
+    @PostMapping("/chat")
+    public String chat(@RequestParam String prompt){
+        return  chatClient.prompt(prompt)
+                  .call()
+                  .content();
+    }
+
+    @PostMapping(value = "/ai/chat", produces = "text/event-stream;charset=UTF-8")
+    public Flux<String> chatbystream(@RequestParam String prompt,
+                                     @RequestParam String chatId//新传入会话id
+    )
+    {
+        chatHistoryRepository.save("chat","01");
+
+        return chatClient
+                .prompt()
+                .user(prompt)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))
+                .stream() // 流式调用
+                .content();
+    }
+}
+```
+**advisors可以看作给这一次 AI 调用添加“增强器 / 拦截器 / 通知”。**
 
 
+### 8.4  查询会话历史
 
+```java
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/ai/history")
+public class ChatHistoryController {
 
+    private final ChatHistoryRepository chatHistoryRepository;
 
+    private final ChatMemory chatMemory;
 
+    /**
+     * 查询某个业务类型下的会话ID列表
+     * 例如：GET /ai/history/chat
+     */
+    @GetMapping("/{type}")
+    public List<String> getChatIds(@PathVariable String type) {
+        return chatHistoryRepository.getChatIds(type);
+    }
 
+    /**
+     * 查询某个会话的历史消息
+     * 例如：GET /ai/history/chat/1001
+     */
+    @GetMapping("/{type}/{chatId}")
+    public List<MessageVO> getChatHistory(
+            @PathVariable String type,
+            @PathVariable String chatId
+    ) {
+        List<Message> messages = chatMemory.get(chatId);
+
+        if (messages == null || messages.isEmpty()) {
+            return List.of();
+        }
+
+        return messages.stream()
+                .map(MessageVO::new)
+                .toList();
+    }
+}
+```
 
 
 
