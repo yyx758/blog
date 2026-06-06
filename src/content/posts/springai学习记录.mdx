@@ -1,5 +1,5 @@
 ---
-title: "SpringAi入门学习记录"
+title: "黑马SpringAi入门学习记录"
 date: 2026-06-05
 tags: ["Spring AI", "大模型", "Transformer"]
 description: "从人工智能发展脉络到 Transformer 与大模型基础原理的学习记录。"
@@ -183,6 +183,7 @@ public class chatController {
 在SpringAI中使用了WebFlux技术实现流式调用。注意流式调用另外需要设定响应类型和编码，不然前端会乱码
 - produces 的意思是：这个接口返回给浏览器/客户端的数据类型是什么。
 - 也就是响应头里会带上类似：Content-Type: text/html;charset=UTF-8
+- 若前端要使用SSE,produces = "text/html;charset=UTF-8"
 ```java
 // 注意看返回值，是Flux<String>，也就是流式结果，另外需要设定响应类型和编码，不然前端会乱码
 @GetMapping(value = "/chat/stream", produces = "text/html;charset=UTF-8")
@@ -193,20 +194,56 @@ public class chatController {
                 .content();
     }
 ```
+**顺带讲讲普通流式和 SSE 的区别:**
 
+普通流式浏览器可能会逐步显示文本，但前端不好按事件处理。SSE前端可以用 EventSource 接收,作为事件流
 ![paste-1780727678174-cdxnu9.png](/api/posts?image=paste-1780727678174-cdxnu9.png&v=a7897485d7c9f24f68e2df064409ffa7c529a6d2)
 
 
+## 5.日志功能
+默认情况下，应用于AI的交互时不记录日志的，我们无法得知SpringAI组织的提示词到底长什么样，有没有问题。这样不方便我们调试。
 
+### 5.1 Advisor
+SpringAI基于AOP机制实现与大模型对话过程的增强、拦截、修改等功能。所有的增强通知都需要实现Advisor接口。
 
+![paste-1780728171622-1aoyns.png](/api/posts?image=paste-1780728171622-1aoyns.png&v=be7a7cb17277574dd1181ed169b4bbc9d0f809cb)
 
+Spring提供了一些Advisor的默认实现，来实现一些基本的增强功能：
+- SimpleLoggerAdvisor：日志记录的Advisor
+- MessageChatMemoryAdvisor：会话记忆的Advisor
+- QuestionAnswerAdvisor：实现RAG的Advisor
 
+### 5.2 添加日志Advisor
+首先，我们需要修改CommonConfiguration，给ChatClient添加日志Advisor：
 
+```java
+@Configuration
+public class commonConfig {
+    @Bean
+    public ChatClient chatClient(OpenAiChatModel model){
+        return ChatClient.builder(model)
+                .defaultAdvisors(new SimpleLoggerAdvisor()) // 添加默认的Advisor,记录日志
+                .build();   //ChatClient.builder：会得到一个ChatClient.Builder工厂对象，利用它可以自由选择模型、添加各种自定义配置
+    }
+}
 
+```
+### 5.3 修改日志级别
 
+```yml
+logging:
+  level:
+    org.springframework.ai: DEBUG
+    com.cquyyx: DEBUG
+```
+重启项目，再次聊天就能看到AI对话的日志信息了
 
+日子级别如下:(**开启高级别的日志就不会打印低级别的日志**)
 
+![paste-1780729198534-27jh1k.png](/api/posts?image=paste-1780729198534-27jh1k.png&v=7c352c1e40666418c58c106becba6aea0a9f7d24)
 
+## 6.前端对接(省略)
+**主要就是解决CORS问题**
 
 
 
