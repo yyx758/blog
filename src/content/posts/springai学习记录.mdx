@@ -407,6 +407,18 @@ public class chatController {
 ```
 **advisors可以看作给这一次 AI 调用添加“增强器 / 拦截器 / 通知”。**
 
+ .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, chatId))就相当于**给本次 AI 请求的 Advisor 上下文添加一个 key-value 参数。**
+
+**以后每次对话都会传入自己的chatId,只能获取自己对话的历史,而不能获取其他对话的**
+
+从日志来看也是:
+
+![paste-1780738783133-g6wt4p.png](/api/posts?image=paste-1780738783133-g6wt4p.png&v=4f57079c9ca1c9a7b1539d05e8157c3a389a9de6)
+
+
+![paste-1780738813053-7lm1cq.png](/api/posts?image=paste-1780738813053-7lm1cq.png&v=f40840df802c41bae0d9df53f49224fc2a1ec029)
+
+因为两次是同一个对话框,所以chatId是一致的,所以才能获取到之前的聊天来回答问题
 
 ### 8.4  查询会话历史
 
