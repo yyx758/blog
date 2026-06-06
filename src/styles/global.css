@@ -65,6 +65,201 @@ pre {
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
 }
 
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+
+html.dark .astro-code,
+html.dark .astro-code span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+  font-style: var(--shiki-dark-font-style);
+  font-weight: var(--shiki-dark-font-weight);
+  text-decoration: var(--shiki-dark-text-decoration);
+}
+
+.prose .code-block {
+  position: relative;
+  margin: 1.5rem 0;
+}
+
+.prose .code-block pre {
+  margin: 0;
+  padding-top: 3rem;
+}
+
+.prose pre {
+  background: #f6f8fa;
+  color: #24292f;
+}
+
+.prose pre.astro-code {
+  background: var(--shiki-light-bg);
+}
+
+html.dark .prose pre {
+  background: #0d1117;
+  color: #c9d1d9;
+}
+
+html.dark .prose pre.astro-code {
+  background: var(--shiki-dark-bg);
+}
+
+.prose pre code {
+  display: block;
+  min-width: max-content;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6e7781;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #cf222e;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-attribute {
+  color: #953800;
+}
+
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp {
+  color: #0a3069;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+  color: #8250df;
+  font-weight: 650;
+}
+
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-built_in {
+  color: #0550ae;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link {
+  color: #0969da;
+}
+
+.hljs-meta,
+.hljs-deletion {
+  color: #82071e;
+}
+
+.hljs-addition {
+  color: #116329;
+}
+
+html.dark .hljs-comment,
+html.dark .hljs-quote {
+  color: #8b949e;
+}
+
+html.dark .hljs-keyword,
+html.dark .hljs-selector-tag,
+html.dark .hljs-subst {
+  color: #ff7b72;
+}
+
+html.dark .hljs-number,
+html.dark .hljs-literal,
+html.dark .hljs-variable,
+html.dark .hljs-template-variable,
+html.dark .hljs-attribute {
+  color: #79c0ff;
+}
+
+html.dark .hljs-string,
+html.dark .hljs-doctag,
+html.dark .hljs-regexp {
+  color: #a5d6ff;
+}
+
+html.dark .hljs-title,
+html.dark .hljs-section,
+html.dark .hljs-selector-id {
+  color: #d2a8ff;
+}
+
+html.dark .hljs-type,
+html.dark .hljs-class .hljs-title,
+html.dark .hljs-built_in {
+  color: #ffa657;
+}
+
+html.dark .hljs-symbol,
+html.dark .hljs-bullet,
+html.dark .hljs-link {
+  color: #58a6ff;
+}
+
+html.dark .hljs-meta,
+html.dark .hljs-deletion {
+  color: #ffa198;
+}
+
+html.dark .hljs-addition {
+  color: #7ee787;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  height: 1.75rem;
+  padding: 0 0.65rem;
+  border: 1px solid color-mix(in oklab, var(--color-border) 82%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in oklab, var(--color-bg-card) 92%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.code-copy-btn:hover {
+  border-color: color-mix(in oklab, var(--color-primary) 32%, var(--color-border));
+  color: var(--color-primary);
+  background: color-mix(in oklab, var(--color-bg-card) 98%, var(--color-primary) 4%);
+}
+
+.code-copy-btn.is-copied {
+  color: #16a34a;
+  border-color: color-mix(in oklab, #16a34a 38%, var(--color-border));
+}
+
 code {
   font-family: var(--font-mono);
 }

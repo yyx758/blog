@@ -248,6 +248,7 @@
 <div id="admin-overlay" class="fixed inset-0 bg-black/20 z-40 hidden transition-opacity"></div>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+<script is:inline src="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/lib/common.min.js"></script>
 <script is:inline>
 (function() {
   let token = localStorage.getItem('gh_token');
@@ -373,6 +374,10 @@
     const md = editBody.value;
     if (typeof marked !== 'undefined') {
       previewContent.innerHTML = sanitizeHtml(marked.parse(md));
+      previewContent.querySelectorAll('pre code').forEach((block) => {
+        if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+      });
+      window.enhanceCodeBlocks?.(previewContent);
     } else {
       previewContent.textContent = md;
     }

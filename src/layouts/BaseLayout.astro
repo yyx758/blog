@@ -57,6 +57,60 @@ const mainClass = wide
       btn?.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
+
+      const copyText = async (text) => {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      };
+
+      window.enhanceCodeBlocks = (root = document) => {
+        root.querySelectorAll('.prose pre').forEach((pre) => {
+          if (pre.parentElement?.classList.contains('code-block')) return;
+
+          const wrapper = document.createElement('div');
+          wrapper.className = 'code-block';
+          pre.parentNode?.insertBefore(wrapper, pre);
+          wrapper.appendChild(pre);
+
+          const copyBtn = document.createElement('button');
+          copyBtn.type = 'button';
+          copyBtn.className = 'code-copy-btn';
+          copyBtn.textContent = '复制';
+          copyBtn.setAttribute('aria-label', '复制代码');
+          wrapper.appendChild(copyBtn);
+
+          copyBtn.addEventListener('click', async () => {
+            try {
+              await copyText(pre.innerText.trimEnd());
+              copyBtn.textContent = '已复制';
+              copyBtn.classList.add('is-copied');
+              window.setTimeout(() => {
+                copyBtn.textContent = '复制';
+                copyBtn.classList.remove('is-copied');
+              }, 1500);
+            } catch {
+              copyBtn.textContent = '失败';
+              window.setTimeout(() => {
+                copyBtn.textContent = '复制';
+              }, 1500);
+            }
+          });
+        });
+      };
+
+      window.enhanceCodeBlocks();
     </script>
   </body>
 </html>
