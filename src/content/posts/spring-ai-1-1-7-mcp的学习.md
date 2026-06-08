@@ -6,6 +6,7 @@ tags: ["Spring AI", "MCP"]
 
 
 
+
 ## 1 什么是 MCP？
 MCP (Model Context Protocol) 是 Anthropic 开发的开放协议，用于 AI 模型与外部工具/服务之间的通信。
 
@@ -452,10 +453,7 @@ public class McpToolController {
 ![paste-1780920969679-887uiz.png](/api/posts?image=paste-1780920969679-887uiz.png&v=186d6ce280e80943ab04e5973eebec43e49e37f9)
 最终也是测试成功
 
-
-
-
-
+**Spring ai 1.1.7还支持一些工具过滤的功能,后续可以进行补充**
 
 
 
