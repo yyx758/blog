@@ -1,8 +1,9 @@
 ---
 title: "spring ai 1.1.7 mcp的学习"
 date: 2026-06-08
-tags: ["spring ai", "MCP"]
+tags: ["Spring Ai", "MCP"]
 ---
+
 
 ## 1 什么是 MCP？
 MCP (Model Context Protocol) 是 Anthropic 开发的开放协议，用于 AI 模型与外部工具/服务之间的通信。
