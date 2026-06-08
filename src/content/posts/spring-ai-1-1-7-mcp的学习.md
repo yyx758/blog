@@ -1,7 +1,7 @@
 ---
 title: "spring ai 1.1.7 mcp的学习"
 date: 2026-06-08
-tags: ["spring ai", "mcp"]
+tags: ["spring ai", "MCP"]
 ---
 
 ## 1 什么是 MCP？
