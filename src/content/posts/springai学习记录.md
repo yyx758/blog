@@ -1,9 +1,10 @@
 ---
 title: "SpringAi1.0.0入门学习记录"
 date: 2026-06-05
-tags: ["Spring AI"]
+tags: ["Spring AI", "LLM", "Function Calling", "RAG"]
 description: "从人工智能发展脉络到 Transformer 与大模型基础原理的学习记录。"
 ---
+
 
 
 
